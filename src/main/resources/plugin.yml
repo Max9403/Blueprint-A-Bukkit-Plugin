@@ -1,0 +1,34 @@
+name: Blueprint
+main: com.emberringstudios.blueprint.Blueprint
+version: 1.5.0
+author: Max9403
+description: Allows you to create a blueprint of what you want to build and build it automatically when you have collected all the materials for it
+softdepend: [SQLibrary]
+website: http://emberringstudios.com/
+
+commands:
+    blueprint:
+        description: Switches to blueprint mode
+        usage: /<command>
+        permission: blueprint.switch
+        permission-message: Seems like you lost your pencil (don't have permission to use blueprint mode) 
+        aliases: [bp]
+    markresourcechest:
+        description: Mark a chest as a chest that contain resources needed for building
+        usage: /<command>
+        permission: blueprint.mark
+        permission-message: Seems like amnesia kicked and you can't remember what you were doing (don't have permision to mark resource chest)
+        aliases: [mrc]
+        
+permissions:
+    blueprint.*:
+        description: Access all commands
+        children:
+            blueprint.switch: true
+            blueprint.mark: true
+    blueprint.switch:
+        description: Allows to switch to blueprint mode
+        default: true
+    blueprint.mark:
+        description: Allows to set a resource chest
+        default: true
