@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.emberringstudios.blueprint;
 
 import java.util.ArrayList;
@@ -12,11 +7,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
-import org.bukkit.inventory.ItemStack;
 
 /**
  *
- * @author Benjamin
+ * @author evilmidget38
+ * @author max9403 (small modifications)
  */
 public class ItemSerial {
 

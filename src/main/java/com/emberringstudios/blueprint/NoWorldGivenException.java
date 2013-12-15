@@ -7,7 +7,7 @@ package com.emberringstudios.blueprint;
 
 /**
  *
- * @author Benjamin
+ * @author Max9403 <Max9403@live.com>
  */
 public class NoWorldGivenException extends Exception {
 

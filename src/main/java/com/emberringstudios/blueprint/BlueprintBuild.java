@@ -17,7 +17,7 @@ import org.bukkit.plugin.Plugin;
 
 /**
  *
- * @author Benjamin
+ * @author Max9403 <Max9403@live.com>
  */
 class BlueprintBuild implements Runnable {
 

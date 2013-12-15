@@ -21,7 +21,7 @@ import org.bukkit.metadata.MetadataValue;
 
 /**
  *
- * @author Benjamin
+ * @author Max9403 <Max9403@live.com>
  */
 public class PlayerListener implements Listener {
 

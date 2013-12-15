@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.emberringstudios.blueprint;
 
 import org.bukkit.Location;
@@ -10,7 +5,7 @@ import org.bukkit.World;
 
 /**
  *
- * @author Benjamin
+ * @author Max9403 <Max9403@live.com>
  */
 public class BasicLocation {
 
