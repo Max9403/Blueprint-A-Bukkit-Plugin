@@ -25,7 +25,6 @@ import org.bukkit.configuration.file.FileConfiguration;
  */
 public class ConfigHandler {
 
-    private static final FileConfiguration defaultBukkitConfig = Blueprint.getPlugin().getConfig();
     private volatile static Database theDataHub = null;
 
     /**

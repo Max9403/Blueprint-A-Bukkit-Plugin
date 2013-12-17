@@ -6,9 +6,8 @@ import java.util.List;
 import java.util.Map;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.block.Chest;
-import org.bukkit.block.DoubleChest;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
@@ -18,7 +17,7 @@ import org.bukkit.plugin.Plugin;
  */
 class BlueprintBuild implements Runnable {
 
-    private Plugin plugin;
+    private final Plugin plugin;
 
     public BlueprintBuild(Plugin plugin) {
         this.plugin = plugin;
@@ -27,50 +26,47 @@ class BlueprintBuild implements Runnable {
     public void run() {
 //        ConcurrentHashMap<String, List<Location>> chestLocations = new ConcurrentHashMap();
 //        for (String name : names) {
-//            chestLocations.put(name, DataHandler.getPlayerChestLocation(name));
+//            chestLocations.put(name, DataHandler.getPlayerChestLocations(name));
 //        }
 
         for (String name : DataHandler.getPlayerIds()) {
-            for (Location loc : DataHandler.getPlayerChestLocation(name)) {
-                if (loc.getBlock().getType() == Material.CHEST) {
-                    Inventory inv;
-                    if (loc.getBlock().getState() instanceof Chest) {
-                        inv = ((Chest) loc.getBlock().getState()).getInventory();
-                    } else if (loc.getBlock().getState() instanceof DoubleChest) {
-                        inv = ((DoubleChest) loc.getBlock().getState()).getInventory();
-                    } else {
-                        break;
-                    }
-                    List<Integer> blueprint = DataHandler.getBlueprintBlockTypes(name, loc.getBlock().getWorld().getName());
-                    for (int mat : blueprint) {
-                        if (inv.contains(mat)) {
-                            HashMap<Integer, ? extends ItemStack> all = inv.all(mat);
-                            Iterator it = all.entrySet().iterator();
-                            while (it.hasNext()) {
-                                Map.Entry pairs = (Map.Entry) it.next();
-                                ItemStack temp = (ItemStack) pairs.getValue();
-                                int inChest = temp.getAmount();
-                                int needed = DataHandler.getBlueprintBlockOfTypInWorldNeeded(name, mat, loc.getBlock().getWorld().getName());
-                                int remaining = (needed - inChest) > 0 ? needed - inChest : 0;
-                                List<BlockData> blocks = DataHandler.getBlueprintBuildBlockOfTypInWorld(name, mat, loc.getBlock().getWorld().getName());
-                                for (int counter = 0; counter < needed - remaining; counter++) {
-                                    System.out.println("test");
-                                    inv.removeItem(new ItemStack(mat, 1));
-                                    loc.getBlock().getState().update(true);
-                                    try {
-                                        blocks.get(counter).loadBlockIntoWorld();
-                                    } catch (NoWorldGivenException ex) {
-                                        blocks.get(counter).loadBlockIntoWorld(loc.getBlock().getWorld());
-                                    }
-                                    DataHandler.removePlayerBlock(name, blocks.get(counter), loc.getBlock().getWorld().getName());
-                                }
+            for (Location loc : DataHandler.getPlayerChestLocations(name)) {
+                Inventory inv;
+                if (loc.getBlock().getState() instanceof InventoryHolder) {
+                    inv = ((InventoryHolder) loc.getBlock().getState()).getInventory();
+                } else {
+                    continue;
+                }
+                List<Integer> blueprint = DataHandler.getBlueprintBlockTypes(name, loc.getBlock().getWorld().getName());
+                for (int mat : blueprint) {
+                    if (inv.contains(mat)) {
+                        HashMap<Integer, ? extends ItemStack> all = inv.all(mat);
+                        Iterator it = all.entrySet().iterator();
+                        while (it.hasNext()) {
+                            Map.Entry pairs = (Map.Entry) it.next();
+                            ItemStack temp = (ItemStack) pairs.getValue();
+                            int inChest = temp.getAmount();
+                            int needed = DataHandler.getBlueprintBlockOfTypInWorldNeeded(name, mat, loc.getBlock().getWorld().getName());
+                            int remaining = (needed - inChest) > 0 ? needed - inChest : 0;
+                            List<BlockData> blocks = DataHandler.getBlueprintBuildBlockOfTypInWorld(name, mat, loc.getBlock().getWorld().getName());
+                            for (int counter = 0; counter < needed - remaining; counter++) {
+                                inv.removeItem(new ItemStack(mat, 1));
+                                loc.getBlock().getState().update(true);
 
-                                it.remove(); // avoids a ConcurrentModificationException
+                                DataHandler.removePlayerBlock(name, blocks.get(counter), loc.getBlock().getWorld().getName());
+                                if (blocks.get(counter).getType() == Material.REDSTONE_TORCH_ON.getId()) {
+                                    blocks.get(counter).setType(Material.REDSTONE_TORCH_OFF.getId());
+                                }
+                                try {
+                                    blocks.get(counter).loadBlockIntoWorld();
+                                } catch (NoWorldGivenException ex) {
+                                    blocks.get(counter).loadBlockIntoWorld(loc.getBlock().getWorld());
+                                }
                             }
+
+                            it.remove(); // avoids a ConcurrentModificationException
                         }
                     }
-                } else {
-
                 }
             }
         }

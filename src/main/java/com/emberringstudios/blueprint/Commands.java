@@ -4,13 +4,19 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.Chest;
+import org.bukkit.block.DoubleChest;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.metadata.LazyMetadataValue;
 import org.bukkit.metadata.MetadataValue;
 import org.yaml.snakeyaml.Yaml;
@@ -100,7 +106,26 @@ public class Commands {
                         sender.sendMessage("Something went wrong, we'll send the goblins to fix it");
                         return true;
                     }
+                    List<Location> playerChestLocations = DataHandler.getPlayerChestLocations(playerId);
 
+                    int resCheck = 0;
+                    for (Location loc : playerChestLocations) {
+                        Inventory inv;
+                        if (loc.getBlock().getState() instanceof InventoryHolder) {
+                            inv = ((InventoryHolder) loc.getBlock().getState()).getInventory();
+                            if (inv.getContents().length > 0) {
+                                resCheck++;
+                            }
+                        } else {
+                            continue;
+                        }
+                        if (inv.getContents().length > 0) {
+                            resCheck++;
+                        }
+                    }
+                    if (resCheck > 0) {
+                        player.sendMessage(ChatColor.RED + "There are blocks in your resource chest" + (resCheck > 1 ? "s. " : ". ") + "Blocks in your resource chest will still placed even when in blueprint mode and will have to be removed manualy");
+                    }
                     Yaml durpStore = new Yaml();
                     String items = durpStore.dump(ItemSerial.serializeItemList(player.getInventory().getContents()));
                     String armour = durpStore.dump(ItemSerial.serializeItemList(player.getInventory().getArmorContents()));

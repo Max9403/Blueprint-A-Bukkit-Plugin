@@ -3,13 +3,16 @@ package com.emberringstudios.blueprint;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.text.MessageFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import lib.PatPeter.SQLibrary.Database;
+import lib.PatPeter.SQLibrary.SQLite;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.inventory.ItemStack;
@@ -41,12 +44,12 @@ public class DataHandler {
         databaseType = aDatabaseType;
     }
 
-    public static void addPlayerBlock(final String name, final Block placedBlock, final String world) {
+    public static void addPlayerBlock(final String name, final Block placedBlock) {
         try {
             if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
                 setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
             }
-            query("INSERT INTO blocks (playerID, blockID, blockX, blockY, blockZ, blockMeta, world) VALUES ('" + name + "', '" + placedBlock.getType().getId() + "', " + placedBlock.getX() + ", " + placedBlock.getY() + ", " + placedBlock.getZ() + ", " + (int) placedBlock.getData() + ", '" + world + "');");
+            query("INSERT INTO blocks (playerID, blockID, blockX, blockY, blockZ, blockMeta, world) VALUES ('" + name + "', '" + placedBlock.getType().getId() + "', " + placedBlock.getX() + ", " + placedBlock.getY() + ", " + placedBlock.getZ() + ", " + (int) placedBlock.getData() + ", '" + placedBlock.getWorld().getName() + "');");
         } catch (SQLException ex) {
             Blueprint.error("Couldn't add block to player", ex);
         }
@@ -103,7 +106,7 @@ public class DataHandler {
         return found;
     }
 
-    public static boolean checkPlayerBlock(final String name, final Block placedBlock, final String world) {
+    public static boolean checkPlayerBlock(final String name, final Block placedBlock) {
         boolean found = false;
         try {
             if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
@@ -115,14 +118,14 @@ public class DataHandler {
                     + " AND blockY = " + placedBlock.getY()
                     + " AND blockZ = " + placedBlock.getZ()
                     + " AND blockMeta = " + (int) placedBlock.getData()
-                    + " AND world = '" + world + "';").get(0).getKey("Count")) > 0;
+                    + " AND world = '" + placedBlock.getWorld().getName() + "';").get(0).getKey("Count")) > 0;
         } catch (SQLException ex) {
             Blueprint.error("Couldn't activate player", ex);
         }
         return found;
     }
 
-    public static boolean checkPlayerBlockNoData(final String name, final Block placedBlock, final String world) {
+    public static boolean checkPlayerBlockNoData(final String name, final Block placedBlock) {
         boolean found = false;
         try {
             if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
@@ -133,7 +136,7 @@ public class DataHandler {
                     + "' AND blockX = " + placedBlock.getX()
                     + " AND blockY = " + placedBlock.getY()
                     + " AND blockZ = " + placedBlock.getZ()
-                    + " AND world = '" + world + "';").get(0).getKey("Count")) > 0;
+                    + " AND world = '" + placedBlock.getWorld().getName() + "';").get(0).getKey("Count")) > 0;
         } catch (SQLException ex) {
             Blueprint.error("Couldn't activate player", ex);
         }
@@ -233,7 +236,7 @@ public class DataHandler {
 
             Blueprint.error("Couldn't deactivate player", ex);
         }
-        return getAndSerializeFullPlayerInventory(name);
+        return getAndDeserializeFullPlayerInventory(name);
     }
 
     public static boolean isPlayerActive(final String name) {
@@ -290,7 +293,7 @@ public class DataHandler {
         return result;
     }
 
-    public static PlayerInventory getAndSerializeFullPlayerInventory(final String playerId) {
+    public static PlayerInventory getAndDeserializeFullPlayerInventory(final String playerId) {
         String inv = getPlayerInventory(playerId);
         String arm = getPlayerArmour(playerId);
         Yaml tempSer = new Yaml();
@@ -303,37 +306,7 @@ public class DataHandler {
         return new PlayerInventory(invPost, armPost);
     }
 
-    private static List<ResultData> query(final String query) throws SQLException {
-        List<ResultData> data = new CopyOnWriteArrayList();
-        synchronized (ConfigHandler.getTheDataHub()) {
-            final Database tempDB = ConfigHandler.getTheDataHub();
-            if (!tempDB.isOpen() && !tempDB.open()) {
-                Blueprint.error("Could not work with database");
-            }
-            try {
-                ResultSet result = tempDB.query(query);
-                ResultSetMetaData meta = result.getMetaData();
-                List<String> columns = new CopyOnWriteArrayList();
-                for (int i = 1; i <= meta.getColumnCount(); i++) {
-                    columns.add(meta.getColumnName(i));
-                }
-                while (result.next()) {
-                    ResultData temp = new ResultData();
-                    for (int col = 0; col < columns.size(); col++) {
-                        temp.setKey(columns.get(col), result.getString(columns.get(col)));
-                    }
-                    data.add(temp);
-                }
-                result.close();
-            } catch (SQLException ex) {
-                throw ex;
-            }
-            tempDB.close();
-        }
-        return data;
-    }
-
-    static void updatePlayerBlock(String name, Block clickedBlock, String world) {
+    static void updatePlayerBlock(final String name, final Block clickedBlock) {
         try {
             if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
                 setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
@@ -344,18 +317,18 @@ public class DataHandler {
                     + "' AND blockX = " + clickedBlock.getX()
                     + " AND blockY = " + clickedBlock.getY()
                     + " AND blockZ = " + clickedBlock.getZ()
-                    + " AND world = '" + world + "';");
+                    + " AND world = '" + clickedBlock.getWorld().getName() + "';");
         } catch (SQLException ex) {
             Blueprint.error("Couldn't activate player", ex);
         }
     }
 
-    public static void addPlayerChest(final String name, final Block placedBlock, final String worldId) {
+    public static void addPlayerChest(final String name, final Block placedBlock) {
         try {
             if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
                 setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
             }
-            query("INSERT INTO chests (playerID, blockX, blockY, blockZ, world) VALUES ('" + name + "', " + placedBlock.getX() + ", " + placedBlock.getY() + ", " + placedBlock.getZ() + ", '" + worldId + "');");
+            query("INSERT INTO chests (playerID, blockX, blockY, blockZ, world) VALUES ('" + name + "', " + placedBlock.getX() + ", " + placedBlock.getY() + ", " + placedBlock.getZ() + ", '" + placedBlock.getWorld().getName() + "');");
         } catch (SQLException ex) {
             Blueprint.error("Couldn't activate player", ex);
         }
@@ -448,7 +421,7 @@ public class DataHandler {
         return playerIds;
     }
 
-    public static List<Location> getPlayerChestLocation(final String name) {
+    public static List<Location> getPlayerChestLocations(final String name) {
         List<Location> locations = new CopyOnWriteArrayList();
         try {
             List<ResultData> query = query("SELECT world, blockX, blockY, blockZ FROM chests WHERE playerID = '" + name + "';");
@@ -515,4 +488,65 @@ public class DataHandler {
         }
         return blockList;
     }
+
+    public static boolean isBlueprintBlock(final Material blockType, final Location placedBlock) {
+        return isBlueprintBlock(blockType.getId(), placedBlock);
+    }
+
+    public static boolean isBlueprintBlock(final int blockTypeID, final Location placedBlock) {
+
+        return isBlueprintBlock(blockTypeID, (int) (placedBlock.getX() + 0.5D), (int) (placedBlock.getY() + 0.5D), (int) (placedBlock.getZ() + 0.5D), placedBlock.getWorld().getName());
+    }
+
+    public static boolean isBlueprintBlock(final Block placedBlock) {
+        return isBlueprintBlock(placedBlock.getType().getId(), placedBlock.getX(), placedBlock.getY(), placedBlock.getZ(), placedBlock.getWorld().getName());
+    }
+
+    public static boolean isBlueprintBlock( int blockTypeID, final int locX, final int locY, final int locZ, final String worldID) {
+        boolean found = false;
+        if (blockTypeID == Material.PISTON_MOVING_PIECE.getId()) {
+            blockTypeID = Material.TNT.getId();
+        }
+        try {
+            found = Integer.parseInt(query("SELECT COUNT(*) AS Count FROM blocks WHERE  blockID = '" + blockTypeID
+                    + "' AND blockX = " + locX
+                    + " AND blockY = " + locY
+                    + " AND blockZ = " + locZ
+                    + " AND world = '" + worldID + "';").get(0).getKey("Count")) > 0;
+        } catch (SQLException ex) {
+            Blueprint.error("Couldn't activate player", ex);
+        }
+        return found;
+    }
+
+    private static List<ResultData> query(final String query) throws SQLException {
+        List<ResultData> data = new CopyOnWriteArrayList();
+        synchronized (ConfigHandler.getTheDataHub()) {
+            final Database tempDB = ConfigHandler.getTheDataHub();
+            if (tempDB instanceof SQLite ? !tempDB.open() : !tempDB.isOpen() && !tempDB.open()) {
+                Blueprint.error("Could not work with database");
+            }
+            try {
+                ResultSet result = tempDB.query(query);
+                ResultSetMetaData meta = result.getMetaData();
+                List<String> columns = new CopyOnWriteArrayList();
+                for (int i = 1; i <= meta.getColumnCount(); i++) {
+                    columns.add(meta.getColumnName(i));
+                }
+                while (result.next()) {
+                    ResultData temp = new ResultData();
+                    for (int col = 0; col < columns.size(); col++) {
+                        temp.setKey(columns.get(col), result.getString(columns.get(col)));
+                    }
+                    data.add(temp);
+                }
+                result.close();
+            } catch (SQLException ex) {
+                throw ex;
+            }
+            tempDB.close();
+        }
+        return data;
+    }
+
 }
