@@ -305,29 +305,31 @@ public class DataHandler {
 
     private static List<ResultData> query(final String query) throws SQLException {
         List<ResultData> data = new CopyOnWriteArrayList();
-        Database tempDB = ConfigHandler.getTheDataHub();
-        if (!tempDB.isOpen() && !tempDB.open()) {
-            Blueprint.error("Could not work with database");
-        }
-        try {
-            ResultSet result = tempDB.query(query);
-            ResultSetMetaData meta = result.getMetaData();
-            List<String> columns = new CopyOnWriteArrayList();
-            for (int i = 1; i <= meta.getColumnCount(); i++) {
-                columns.add(meta.getColumnName(i));
+        synchronized (ConfigHandler.getTheDataHub()) {
+            final Database tempDB = ConfigHandler.getTheDataHub();
+            if (!tempDB.isOpen() && !tempDB.open()) {
+                Blueprint.error("Could not work with database");
             }
-            while (result.next()) {
-                ResultData temp = new ResultData();
-                for (int col = 0; col < columns.size(); col++) {
-                    temp.setKey(columns.get(col), result.getString(columns.get(col)));
+            try {
+                ResultSet result = tempDB.query(query);
+                ResultSetMetaData meta = result.getMetaData();
+                List<String> columns = new CopyOnWriteArrayList();
+                for (int i = 1; i <= meta.getColumnCount(); i++) {
+                    columns.add(meta.getColumnName(i));
                 }
-                data.add(temp);
+                while (result.next()) {
+                    ResultData temp = new ResultData();
+                    for (int col = 0; col < columns.size(); col++) {
+                        temp.setKey(columns.get(col), result.getString(columns.get(col)));
+                    }
+                    data.add(temp);
+                }
+                result.close();
+            } catch (SQLException ex) {
+                throw ex;
             }
-            result.close();
-        } catch (SQLException ex) {
-            throw ex;
+            tempDB.close();
         }
-        tempDB.close();
         return data;
     }
 
@@ -501,11 +503,11 @@ public class DataHandler {
         try {
             List<ResultData> result = query("SELECT blockX, blockY, blockZ, blockMeta FROM blocks WHERE playerID = '" + playerID + "' AND world = '" + worldID + "' AND blockID = " + mat + ";");
             for (ResultData data : result) {
-                blockList.add(new BlockData(mat, 
-                        Integer.parseInt(data.getKey("blockX")), 
+                blockList.add(new BlockData(mat,
+                        Integer.parseInt(data.getKey("blockX")),
                         Integer.parseInt(data.getKey("blockY")),
-                        Integer.parseInt(data.getKey("blockZ")), 
-                        Byte.parseByte(data.getKey("blockMeta")), 
+                        Integer.parseInt(data.getKey("blockZ")),
+                        Byte.parseByte(data.getKey("blockMeta")),
                         Bukkit.getWorld(worldID)));
             }
         } catch (SQLException ex) {

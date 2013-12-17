@@ -4,9 +4,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Chest;
@@ -51,13 +48,13 @@ class BlueprintBuild implements Runnable {
                             Iterator it = all.entrySet().iterator();
                             while (it.hasNext()) {
                                 Map.Entry pairs = (Map.Entry) it.next();
-                                System.out.println(pairs.getKey() + " = " + pairs.getValue());
                                 ItemStack temp = (ItemStack) pairs.getValue();
                                 int inChest = temp.getAmount();
                                 int needed = DataHandler.getBlueprintBlockOfTypInWorldNeeded(name, mat, loc.getBlock().getWorld().getName());
                                 int remaining = (needed - inChest) > 0 ? needed - inChest : 0;
                                 List<BlockData> blocks = DataHandler.getBlueprintBuildBlockOfTypInWorld(name, mat, loc.getBlock().getWorld().getName());
                                 for (int counter = 0; counter < needed - remaining; counter++) {
+                                    System.out.println("test");
                                     inv.removeItem(new ItemStack(mat, 1));
                                     loc.getBlock().getState().update(true);
                                     try {

@@ -25,8 +25,8 @@ import org.bukkit.configuration.file.FileConfiguration;
  */
 public class ConfigHandler {
 
-    private static FileConfiguration defaultBukkitConfig = Blueprint.getPlugin().getConfig();
-    private static Database theDataHub;
+    private static final FileConfiguration defaultBukkitConfig = Blueprint.getPlugin().getConfig();
+    private volatile static Database theDataHub = null;
 
     /**
      * @return the defaultBukkitConfig
@@ -39,61 +39,63 @@ public class ConfigHandler {
      * @return the theDataHub
      */
     public static Database getTheDataHub() {
-        Blueprint.getPlugin().getDataFolder().mkdirs();
-        FileConfiguration localConfig = ConfigHandler.getDefaultBukkitConfig();
-        switch (localConfig.getInt("database.type", 0)) {
-            case 1:
-                theDataHub = new Firebird(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
-                break;
-            case 2:
-                theDataHub = new FrontBase(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
-                break;
-            case 3:
-                theDataHub = new DB2(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
-                break;
-            case 4:
-                theDataHub = new H2(Logger.getLogger("Minecraft"), "[Blueprint]", Blueprint.getPlugin().getDataFolder() + "/data", "users");
-                break;
-            case 5:
-                theDataHub = new Informix(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
-                break;
-            case 6:
-                theDataHub = new Ingres(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
-                break;
-            case 7:
-                theDataHub = new MaxDB(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
-                break;
-            case 8:
-                try {
-                    theDataHub = new MicrosoftSQL(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
-                } catch (SQLException ex) {
-                    Blueprint.error("Failed to connect to database", ex);
-                }
-                break;
-            case 9:
-                theDataHub = new MySQL(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
-                break;
-            case 10:
-                theDataHub = new Mongo(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
-                break;
-            case 11:
-                theDataHub = new mSQL(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
-                break;
-            case 12:
-                try {
-                    theDataHub = new Oracle(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
-                } catch (SQLException ex) {
-                    Blueprint.error("Failed to connect to database", ex);
-                }
-                break;
-            case 13:
-                theDataHub = new PostgreSQL(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
-                break;
-            default:
-                theDataHub = new SQLite(Logger.getLogger("Minecraft"), "[Blueprint]", Blueprint.getPlugin().getDataFolder() + "/data", "users");
-                break;
+        if (theDataHub == null) {
+            Blueprint.getPlugin().getDataFolder().mkdirs();
+            FileConfiguration localConfig = ConfigHandler.getDefaultBukkitConfig();
+            switch (localConfig.getInt("database.type", 0)) {
+                case 1:
+                    theDataHub = new Firebird(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
+                    break;
+                case 2:
+                    theDataHub = new FrontBase(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
+                    break;
+                case 3:
+                    theDataHub = new DB2(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
+                    break;
+                case 4:
+                    theDataHub = new H2(Logger.getLogger("Minecraft"), "[Blueprint]", Blueprint.getPlugin().getDataFolder() + "/data", "users");
+                    break;
+                case 5:
+                    theDataHub = new Informix(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
+                    break;
+                case 6:
+                    theDataHub = new Ingres(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
+                    break;
+                case 7:
+                    theDataHub = new MaxDB(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
+                    break;
+                case 8:
+                    try {
+                        theDataHub = new MicrosoftSQL(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
+                    } catch (SQLException ex) {
+                        Blueprint.error("Failed to connect to database", ex);
+                    }
+                    break;
+                case 9:
+                    theDataHub = new MySQL(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
+                    break;
+                case 10:
+                    theDataHub = new Mongo(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
+                    break;
+                case 11:
+                    theDataHub = new mSQL(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
+                    break;
+                case 12:
+                    try {
+                        theDataHub = new Oracle(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
+                    } catch (SQLException ex) {
+                        Blueprint.error("Failed to connect to database", ex);
+                    }
+                    break;
+                case 13:
+                    theDataHub = new PostgreSQL(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
+                    break;
+                default:
+                    theDataHub = new SQLite(Logger.getLogger("Minecraft"), "[Blueprint]", Blueprint.getPlugin().getDataFolder() + "/data", "users");
+                    break;
+            }
+            DataHandler.setDatabaseType(localConfig.getInt("database.type", 0));
         }
-        DataHandler.setDatabaseType(localConfig.getInt("database.type", 0));
         return theDataHub;
     }
 }

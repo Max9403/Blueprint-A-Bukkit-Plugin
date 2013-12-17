@@ -50,13 +50,13 @@ public class Blueprint extends JavaPlugin {
     }
 
     public static void error(String log, Exception ex) {
-        getPlugin().getServer().getLogger().log(Level.WARNING, "[Blueprint] {0}, disabaling", log);
-        Logger.getLogger("Minecraft").log(Level.SEVERE, null, ex);
+        getPlugin().getServer().getLogger().log(Level.SEVERE, "[Blueprint] {0}, disabaling", log);
+       getPlugin().getServer().getLogger().log(Level.SEVERE, null, ex);
         Bukkit.getServer().getPluginManager().disablePlugin(plugin);
     }
 
     public static void error(String log) {
-        getPlugin().getServer().getLogger().log(Level.WARNING, "[Blueprint] {0}, disabaling", log);
+        getPlugin().getServer().getLogger().log(Level.SEVERE, "[Blueprint] {0}, disabaling", log);
         Bukkit.getServer().getPluginManager().disablePlugin(plugin);
     }
 
@@ -113,7 +113,7 @@ public class Blueprint extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PlayerListener(), this);
         DataHandler.setupDB();
         Commands.register();
-        plugin.getServer().getScheduler().runTaskTimer(plugin, new BlueprintBuild(plugin), 60L, 60L);
+        plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, new BlueprintBuild(plugin), 60L, 60L);
     }
 
     @Override
@@ -130,5 +130,7 @@ public class Blueprint extends JavaPlugin {
         ConfigHandler.getDefaultBukkitConfig().addDefault("database.database", "blueprint");
         ConfigHandler.getDefaultBukkitConfig().addDefault("database.user", "root");
         ConfigHandler.getDefaultBukkitConfig().addDefault("database.password", "");
+        ConfigHandler.getDefaultBukkitConfig().addDefault("limits.blocks at a time", 20);
+        ConfigHandler.getDefaultBukkitConfig().addDefault("limits.time to check", 60);
     }
 }
