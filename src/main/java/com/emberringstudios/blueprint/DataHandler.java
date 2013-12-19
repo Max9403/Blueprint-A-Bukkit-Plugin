@@ -328,7 +328,7 @@ public class DataHandler {
             if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
                 setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
             }
-            if (isPlayerchest(placedBlock)) {
+            if (!isPlayerChest(placedBlock)) {
                 query("INSERT INTO chests (playerID, blockX, blockY, blockZ, world) VALUES ('" + name + "', " + placedBlock.getX() + ", " + placedBlock.getY() + ", " + placedBlock.getZ() + ", '" + placedBlock.getWorld().getName() + "');");
                 return true;
             }
@@ -553,9 +553,9 @@ public class DataHandler {
         return data;
     }
 
-    public static boolean isPlayerchest(Block placedBlock) {
+    public static boolean isPlayerChest(Block placedBlock) {
         try {
-            return Integer.parseInt(query("SELECT COUNNT(*) AS Count FROM chests WHERE blockX = " + placedBlock.getX() + " AND blockY = " + placedBlock.getY() + " AND blockZ  = " + placedBlock.getX() + ";('").get(0).getKey("Count")) > 0;
+           return Integer.parseInt(query("SELECT COUNT(*) AS Count FROM chests WHERE blockX = " + placedBlock.getX() + " AND blockY = " + placedBlock.getY() + " AND blockZ  = " + placedBlock.getX() + ";").get(0).getKey("Count")) > 0;
         } catch (SQLException ex) {
             Blueprint.error("Couldn't activate player", ex);
         }

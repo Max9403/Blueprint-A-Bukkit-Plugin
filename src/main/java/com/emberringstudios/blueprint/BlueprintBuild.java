@@ -52,7 +52,6 @@ class BlueprintBuild implements Runnable {
                             for (int counter = 0; counter < needed - remaining; counter++) {
                                 inv.removeItem(new ItemStack(mat, 1));
                                 loc.getBlock().getState().update(true);
-
                                 DataHandler.removePlayerBlock(name, blocks.get(counter), loc.getBlock().getWorld().getName());
                                 if (blocks.get(counter).getType() == Material.REDSTONE_TORCH_ON.getId()) {
                                     blocks.get(counter).setType(Material.REDSTONE_TORCH_OFF.getId());

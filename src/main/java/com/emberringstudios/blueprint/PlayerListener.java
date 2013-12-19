@@ -117,7 +117,7 @@ public class PlayerListener implements Listener {
                         for (MetadataValue meta : player.getMetadata("inMarkMode")) {
                             if (meta.getOwningPlugin() == Blueprint.getPlugin()) {
                                 if (meta.asBoolean()) {
-                                    if (!DataHandler.isPlayerchest(pie.getClickedBlock())) {
+                                    if (!DataHandler.isPlayerChest(pie.getClickedBlock())) {
                                         DataHandler.addPlayerChest(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName(), pie.getClickedBlock());
                                         player.setMetadata("inMarkMode", new LazyMetadataValue(Blueprint.getPlugin(), new Callable() {
 
@@ -150,7 +150,7 @@ public class PlayerListener implements Listener {
                     for (MetadataValue meta : player.getMetadata("inMarkMode")) {
                         if (meta.getOwningPlugin() == Blueprint.getPlugin()) {
                             if (meta.asBoolean()) {
-                                if (!DataHandler.isPlayerchest(pie.getClickedBlock())) {
+                                if (!DataHandler.isPlayerChest(pie.getClickedBlock())) {
                                     DataHandler.addPlayerChest(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName(), pie.getClickedBlock());
                                     player.setMetadata("inMarkMode", new LazyMetadataValue(Blueprint.getPlugin(), new Callable() {
 
