@@ -323,15 +323,19 @@ public class DataHandler {
         }
     }
 
-    public static void addPlayerChest(final String name, final Block placedBlock) {
+    public static boolean addPlayerChest(final String name, final Block placedBlock) {
         try {
             if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
                 setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
             }
-            query("INSERT INTO chests (playerID, blockX, blockY, blockZ, world) VALUES ('" + name + "', " + placedBlock.getX() + ", " + placedBlock.getY() + ", " + placedBlock.getZ() + ", '" + placedBlock.getWorld().getName() + "');");
+            if (isPlayerchest(placedBlock)) {
+                query("INSERT INTO chests (playerID, blockX, blockY, blockZ, world) VALUES ('" + name + "', " + placedBlock.getX() + ", " + placedBlock.getY() + ", " + placedBlock.getZ() + ", '" + placedBlock.getWorld().getName() + "');");
+                return true;
+            }
         } catch (SQLException ex) {
             Blueprint.error("Couldn't activate player", ex);
         }
+        return false;
     }
 
     public static void setupDB() {
@@ -502,7 +506,7 @@ public class DataHandler {
         return isBlueprintBlock(placedBlock.getType().getId(), placedBlock.getX(), placedBlock.getY(), placedBlock.getZ(), placedBlock.getWorld().getName());
     }
 
-    public static boolean isBlueprintBlock( int blockTypeID, final int locX, final int locY, final int locZ, final String worldID) {
+    public static boolean isBlueprintBlock(int blockTypeID, final int locX, final int locY, final int locZ, final String worldID) {
         boolean found = false;
         if (blockTypeID == Material.PISTON_MOVING_PIECE.getId()) {
             blockTypeID = Material.TNT.getId();
@@ -547,6 +551,15 @@ public class DataHandler {
             tempDB.close();
         }
         return data;
+    }
+
+    public static boolean isPlayerchest(Block placedBlock) {
+        try {
+            return Integer.parseInt(query("SELECT COUNNT(*) AS Count FROM chests WHERE blockX = " + placedBlock.getX() + " AND blockY = " + placedBlock.getY() + " AND blockZ  = " + placedBlock.getX() + ";('").get(0).getKey("Count")) > 0;
+        } catch (SQLException ex) {
+            Blueprint.error("Couldn't activate player", ex);
+        }
+        return false;
     }
 
 }

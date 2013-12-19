@@ -35,16 +35,16 @@ import org.bukkit.util.Vector;
  * @author Max9403 <Max9403@live.com>
  */
 public class PlayerListener implements Listener {
-    
+
     private final static List<Material> ignoreList = new CopyOnWriteArrayList();
-    
+
     static {
         ignoreList.add(Material.DEAD_BUSH);
         ignoreList.add(Material.LONG_GRASS);
         ignoreList.add(Material.THIN_GLASS);
         ignoreList.add(Material.DOUBLE_PLANT);
     }
-    
+
 //    @EventHandler
 //    public void onExplosionEvent(ExplosionPrimeEvent epe) {
 //        Location placedBlock = epe.getEntity().getLocation();
@@ -53,14 +53,13 @@ public class PlayerListener implements Listener {
 //            epe.setCancelled(true);
 //        }
 //    }
-    
     @EventHandler
     public void onPhysicsEvent(BlockPhysicsEvent bpe) {
         if (DataHandler.isBlueprintBlock(bpe.getBlock())) {
             bpe.setCancelled(true);
         }
     }
-    
+
     @EventHandler
     public void onInventoryOpenEvent(InventoryOpenEvent ioe) {
         if (ioe.getPlayer() instanceof Player) {
@@ -72,7 +71,7 @@ public class PlayerListener implements Listener {
             }
         }
     }
-    
+
     @EventHandler
     public void onEntityDamage(EntityDamageEvent edea) {
         if (edea instanceof EntityDamageByEntityEvent) {
@@ -82,15 +81,6 @@ public class PlayerListener implements Listener {
                 {
                     if (DataHandler.isPlayerActive(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName())) {
                         ede.setCancelled(true);
-                    } else if (player.hasMetadata("inMarkMode")) {
-                        for (MetadataValue meta : player.getMetadata("inMarkMode")) {
-                            if (meta.getOwningPlugin() == Blueprint.getPlugin()) {
-                                if (meta.asBoolean()) {
-                                    ede.setCancelled(true);
-                                    break;
-                                }
-                            }
-                        }
                     }
                 }
             }
@@ -101,7 +91,7 @@ public class PlayerListener implements Listener {
             }
         }
     }
-    
+
     @EventHandler
     public void onPlayerInteract(final PlayerInteractEvent pie) {
         Player player = pie.getPlayer();
@@ -124,17 +114,21 @@ public class PlayerListener implements Listener {
                     }
                 } else if (pie.getClickedBlock().getType() == Material.CHEST) {
                     if (player.hasMetadata("inMarkMode")) {
-                        DataHandler.addPlayerChest(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName(), pie.getClickedBlock());
                         for (MetadataValue meta : player.getMetadata("inMarkMode")) {
                             if (meta.getOwningPlugin() == Blueprint.getPlugin()) {
                                 if (meta.asBoolean()) {
-                                    player.setMetadata("inMarkMode", new LazyMetadataValue(Blueprint.getPlugin(), new Callable() {
-                                        
-                                        public Object call() throws Exception {
-                                            return false;
-                                        }
-                                    }));
-                                    player.sendMessage("Resource chest marked");
+                                    if (!DataHandler.isPlayerchest(pie.getClickedBlock())) {
+                                        DataHandler.addPlayerChest(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName(), pie.getClickedBlock());
+                                        player.setMetadata("inMarkMode", new LazyMetadataValue(Blueprint.getPlugin(), new Callable() {
+
+                                            public Object call() throws Exception {
+                                                return false;
+                                            }
+                                        }));
+                                        player.sendMessage("Resource chest marked");
+                                    } else {
+                                        player.sendMessage("This chest is already marked");
+                                    }
                                     break;
                                 }
                             }
@@ -153,18 +147,21 @@ public class PlayerListener implements Listener {
             }
             if (pie.getAction() == Action.RIGHT_CLICK_BLOCK && pie.getClickedBlock().getType() == Material.CHEST) {
                 if (player.hasMetadata("inMarkMode")) {
-                    DataHandler.addPlayerChest(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName(), pie.getClickedBlock());
                     for (MetadataValue meta : player.getMetadata("inMarkMode")) {
                         if (meta.getOwningPlugin() == Blueprint.getPlugin()) {
                             if (meta.asBoolean()) {
-                                player.setMetadata("inMarkMode", new LazyMetadataValue(Blueprint.getPlugin(), new Callable() {
-                                    
-                                    public Object call() throws Exception {
-                                        pie.setCancelled(true);
-                                        return false;
-                                    }
-                                }));
-                                player.sendMessage("Resource chest marked");
+                                if (!DataHandler.isPlayerchest(pie.getClickedBlock())) {
+                                    DataHandler.addPlayerChest(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName(), pie.getClickedBlock());
+                                    player.setMetadata("inMarkMode", new LazyMetadataValue(Blueprint.getPlugin(), new Callable() {
+
+                                        public Object call() throws Exception {
+                                            return false;
+                                        }
+                                    }));
+                                    player.sendMessage("Resource chest marked");
+                                } else {
+                                    player.sendMessage("This chest is already marked");
+                                }
                                 break;
                             }
                         }
@@ -173,7 +170,7 @@ public class PlayerListener implements Listener {
             }
         }
     }
-    
+
     @EventHandler
     public void onInventoryClick(InventoryClickEvent ice) {
         if (ice.getWhoClicked() instanceof Player) {
@@ -187,14 +184,14 @@ public class PlayerListener implements Listener {
             }
         }
     }
-    
+
     @EventHandler
     public void onItemDrop(PlayerDropItemEvent pde) {
         if (DataHandler.isPlayerActive(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? pde.getPlayer().getUniqueId().toString() : pde.getPlayer().getName())) {
             pde.setCancelled(true);
         }
     }
-    
+
     @EventHandler
     public void onBlockBreak(BlockBreakEvent bbe) {
         if (DataHandler.isPlayerActive(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? bbe.getPlayer().getUniqueId().toString() : bbe.getPlayer().getName())) {
@@ -207,18 +204,18 @@ public class PlayerListener implements Listener {
             }
         }
     }
-    
+
     @EventHandler
     public void onBlockRedstoneChange(BlockRedstoneEvent bre) {
         if (DataHandler.isBlueprintBlock(bre.getBlock())) {
             bre.setNewCurrent(0);
         }
     }
-    
+
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent bpe) {
         if (!bpe.isCancelled() && DataHandler.isPlayerActive(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? bpe.getPlayer().getUniqueId().toString() : bpe.getPlayer().getName()) && bpe.canBuild()) {
-            
+
             DataHandler.addPlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? bpe.getPlayer().getUniqueId().toString() : bpe.getPlayer().getName(), bpe.getBlockPlaced());
             if (bpe.getBlockPlaced().getType() == Material.REDSTONE_TORCH_ON) {
                 bpe.getBlockPlaced().setType(Material.REDSTONE_TORCH_OFF);
