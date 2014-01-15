@@ -39,7 +39,7 @@ class BlueprintBuild implements Runnable {
                 } else {
                     continue;
                 }
-                List<Integer> blueprint = DataHandler.getBlueprintBlockTypes(name, loc.getBlock().getWorld().getName());
+                List<Integer> blueprint = DataHandler.getBlueprintItemTypes(name, loc.getBlock().getWorld().getName());
                 for (int mat : blueprint) {
                     if (inv.contains(mat)) {
                         HashMap<Integer, ? extends ItemStack> all = inv.all(mat);
@@ -48,9 +48,9 @@ class BlueprintBuild implements Runnable {
                             Map.Entry pairs = (Map.Entry) it.next();
                             ItemStack temp = (ItemStack) pairs.getValue();
                             int inChest = temp.getAmount();
-                            int needed = DataHandler.getBlueprintBlockOfTypInWorldNeeded(name, mat, loc.getBlock().getWorld().getName());
+                            int needed = DataHandler.getBlueprintBlockOfTypInWorldNeededFromItem(name, mat, loc.getBlock().getWorld().getName());
                             int remaining = (needed - inChest) > 0 ? needed - inChest : 0;
-                            List<BlockData> blocks = DataHandler.getBlueprintBuildBlockOfTypInWorld(name, mat, loc.getBlock().getWorld().getName());
+                            List<BlockData> blocks = DataHandler.getBlueprintBuildBlockOfTypInWorldFromItem(name, mat, loc.getBlock().getWorld().getName());
                             for (int counter = 0; counter < needed - remaining; counter++) {
                                 if(placedBlocks >= maxBlocks){
                                     return;

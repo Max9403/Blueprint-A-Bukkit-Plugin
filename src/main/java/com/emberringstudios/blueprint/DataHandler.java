@@ -55,6 +55,17 @@ public class DataHandler {
         }
     }
 
+    public static void addPlayerBlock(final String name, final int itemID, final int itemData, final Block placedBlock) {
+        try {
+            if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
+                setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
+            }
+            query("INSERT INTO blocks (playerID,  itemID, itemMeta, blockID, blockX, blockY, blockZ, blockMeta, world) VALUES ('" + name + "', " + itemID + ", '" + itemData + "', '" + placedBlock.getType().getId() + "', " + placedBlock.getX() + ", " + placedBlock.getY() + ", " + placedBlock.getZ() + ", " + (int) placedBlock.getData() + ", '" + placedBlock.getWorld().getName() + "');");
+        } catch (SQLException ex) {
+            Blueprint.error("Couldn't add block to player", ex);
+        }
+    }
+
     public static void removePlayerBlock(final String name, final BlockData placedBlock, final String world) {
         try {
             if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
@@ -306,7 +317,7 @@ public class DataHandler {
         return new PlayerInventory(invPost, armPost);
     }
 
-    static void updatePlayerBlock(final String name, final Block clickedBlock) {
+    public static void updatePlayerBlock(final String name, final Block clickedBlock) {
         try {
             if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
                 setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
@@ -458,7 +469,7 @@ public class DataHandler {
     public static List<Integer> getBlueprintBlockTypes(final String playerID, final String worldID) {
         List<Integer> blockList = new CopyOnWriteArrayList();
         try {
-            List<ResultData> result = query("SELECT blockID FROM blocks WHERE playerID = '" + playerID + "' AND world = '" + worldID + "';");
+            List<ResultData> result = query("SELECT DISTINCT  blockID FROM blocks WHERE playerID = '" + playerID + "' AND world = '" + worldID + "';");
             for (ResultData data : result) {
                 blockList.add(Integer.parseInt(data.getKey("blockID")));
             }
@@ -566,4 +577,75 @@ public class DataHandler {
         return false;
     }
 
+    public static void updateBlock(Block clickedBlock) {
+        try {
+            query("UPDATE blocks SET blockMeta = " + (int) clickedBlock.getData() + "  WHERE"
+                    + " blockID = '" + clickedBlock.getType().getId()
+                    + "' AND blockX = " + clickedBlock.getX()
+                    + " AND blockY = " + clickedBlock.getY()
+                    + " AND blockZ = " + clickedBlock.getZ()
+                    + " AND world = '" + clickedBlock.getWorld().getName() + "';");
+        } catch (SQLException ex) {
+            Blueprint.error("Couldn't activate player", ex);
+        }
+    }
+
+    public static boolean isBlueprintBlockAtLocation(final Location location) {
+        return isBlueprintBlockAtLocation(location.getBlockX(), location.getBlockY(), location.getBlockZ(), location.getWorld().getName());
+    }
+
+    public static boolean isBlueprintBlockAtLocation(final int locX, final int locY, final int locZ, final String worldID) {
+        boolean found = false;
+        try {
+            found = Integer.parseInt(query("SELECT COUNT(*) AS Count FROM blocks WHERE   blockX = " + locX
+                    + " AND blockY = " + locY
+                    + " AND blockZ = " + locZ
+                    + " AND world = '" + worldID + "';").get(0).getKey("Count")) > 0;
+        } catch (SQLException ex) {
+            Blueprint.error("Couldn't activate player", ex);
+        }
+        return found;
+    }
+
+    public static List<Integer> getBlueprintItemTypes(final String playerID, final String worldID) {
+        List<Integer> blockList = new CopyOnWriteArrayList();
+        try {
+            List<ResultData> result = query("SELECT DISTINCT  itemID FROM blocks WHERE playerID = '" + playerID + "' AND world = '" + worldID + "';");
+            for (ResultData data : result) {
+                blockList.add(Integer.parseInt(data.getKey("itemID")));
+            }
+        } catch (SQLException ex) {
+            Blueprint.error("Couldn't deactivate player", ex);
+        }
+        return blockList;
+    }
+
+    public static int getBlueprintBlockOfTypInWorldNeededFromItem(final String playerID, final int mat, final String worldID) {
+        int count = 0;
+        try {
+            count = Integer.parseInt(query("SELECT COUNT(*) AS Count FROM blocks WHERE playerID = '" + playerID + "' AND world = '" + worldID + "' AND itemID =" + mat + ";").get(0).getKey("Count"));
+
+        } catch (SQLException ex) {
+            Blueprint.error("Couldn't deactivate player", ex);
+        }
+        return count;
+    }
+
+    public static List<BlockData> getBlueprintBuildBlockOfTypInWorldFromItem(String playerID , int mat, String worldID) {
+       List<BlockData> blockList = new CopyOnWriteArrayList();
+        try {
+            List<ResultData> result = query("SELECT blockID, blockX, blockY, blockZ, blockMeta FROM blocks WHERE playerID = '" + playerID + "' AND world = '" + worldID + "' AND itemID = " + mat + ";");
+            for (ResultData data : result) {
+                blockList.add(new BlockData(Integer.parseInt(data.getKey("blockID")),
+                        Integer.parseInt(data.getKey("blockX")),
+                        Integer.parseInt(data.getKey("blockY")),
+                        Integer.parseInt(data.getKey("blockZ")),
+                        Byte.parseByte(data.getKey("blockMeta")),
+                        Bukkit.getWorld(worldID)));
+            }
+        } catch (SQLException ex) {
+            Blueprint.error("Couldn't deactivate player", ex);
+        }
+        return blockList;
+    }
 }

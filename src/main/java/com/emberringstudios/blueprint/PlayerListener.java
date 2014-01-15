@@ -50,14 +50,20 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onPlayerBucketEmpty(PlayerBucketEmptyEvent pbee) {
         if (!pbee.isCancelled() && DataHandler.isPlayerActive(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? pbee.getPlayer().getUniqueId().toString() : pbee.getPlayer().getName())) {
-
-            DataHandler.addPlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? pbee.getPlayer().getUniqueId().toString() : pbee.getPlayer().getName(), pbee.getItemStack(), pbee.getBlockClicked().getRelative(pbee.getBlockFace()));
+            if (DataHandler.isBlueprintBlockAtLocation(pbee.getBlockClicked().getRelative(pbee.getBlockFace()).getLocation())) {
+                DataHandler.updatePlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? pbee.getPlayer().getUniqueId().toString() : pbee.getPlayer().getName(), pbee.getBlockClicked().getRelative(pbee.getBlockFace()));
+            } else {
+                DataHandler.addPlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? pbee.getPlayer().getUniqueId().toString() : pbee.getPlayer().getName(), pbee.getBucket().getId(), 0, pbee.getBlockClicked().getRelative(pbee.getBlockFace()));
+            }
         }
     }
 
     @EventHandler
     public void onPhysicsEvent(BlockPhysicsEvent bpe) {
         if (DataHandler.isBlueprintBlock(bpe.getBlock())) {
+            if (bpe.getChangedTypeId() != 0) {
+                DataHandler.updateBlock(bpe.getBlock());
+            }
             bpe.setCancelled(true);
         }
     }
