@@ -107,21 +107,25 @@ public class Commands {
                     }
                     List<Location> playerChestLocations = DataHandler.getPlayerChestLocations(playerId);
 
-                    int resCheck = 0;
+                    boolean resCheck = false;
                     for (Location loc : playerChestLocations) {
                         Inventory inv;
                         if (loc.getBlock().getState() instanceof InventoryHolder) {
                             inv = ((InventoryHolder) loc.getBlock().getState()).getInventory();
                             for (ItemStack check : inv.getContents()) {
                                 if (check != null) {
-                                    resCheck++;
+                                    resCheck = true;
                                     break;
                                 }
                             }
                         }
+                        if (resCheck) {
+                            resCheck = true;
+                            break;
+                        }
                     }
-                    if (resCheck > 0) {
-                        player.sendMessage(ChatColor.RED + "There are blocks in your resource chest" + (resCheck > 1 ? "s. " : ". ") + "Blocks in your resource chest will still placed even when in blueprint mode and will have to be removed manualy");
+                    if (resCheck) {
+                        player.sendMessage(ChatColor.RED + "There are blocks in your resource chest" + (playerChestLocations.size() > 1 ? "s. " : ". ") + "Blocks in your resource chest will still placed even when in blueprint mode and will have to be removed manualy");
                     }
                     Yaml durpStore = new Yaml();
                     String items = durpStore.dump(ItemSerial.serializeItemList(player.getInventory().getContents()));
@@ -131,6 +135,9 @@ public class Commands {
                     DataHandler.setPlayerLocation(playerId, player.getLocation());
                     List<BlockData> blocks = DataHandler.getBlueprint(playerId, player.getWorld().getName());
                     for (BlockData thatData : blocks) {
+                        if(thatData.getType() == 46){
+                            continue;
+                        }
                         try {
                             Block tempBlock = player.getWorld().getBlockAt(thatData.getX(), thatData.getY(), thatData.getZ());
                             if (player.getWorld().getBlockAt(thatData.getX(), thatData.getY(), thatData.getZ()).getTypeId() == 0) {

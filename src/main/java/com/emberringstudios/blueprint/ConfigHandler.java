@@ -31,8 +31,10 @@ import org.bukkit.configuration.file.YamlConfiguration;
 public class ConfigHandler {
 
     private volatile static Database theDataHub = null;
-    private volatile static FileConfiguration customConfig = null;
-    private volatile static File customConfigFile = null;
+    private volatile static FileConfiguration greenlistConfig = null;
+    private volatile static File greenlistConfigFile = null;
+    private volatile static FileConfiguration blacklistConfig = null;
+    private volatile static File blacklistConfigFile = null;
 
     /**
      * @return the defaultBukkitConfig
@@ -104,46 +106,68 @@ public class ConfigHandler {
         }
         return theDataHub;
     }
-
-    //public static List<Integer> getGreenList() {
-
-        /*
-         ignoreList.add(Material.DEAD_BUSH);
-         ignoreList.add(Material.LONG_GRASS);
-         ignoreList.add(Material.THIN_GLASS);
-         ignoreList.add(Material.DOUBLE_PLANT);
-         */
-    //}
-
-    public static void reloadCustomConfig() {
-        if (customConfigFile == null) {
-            customConfigFile = new File(Blueprint.getPlugin().getDataFolder(), "Greenlist.yml");
+    
+    public static void reloadGreenlistConfig() {
+        if (greenlistConfigFile == null) {
+            greenlistConfigFile = new File(Blueprint.getPlugin().getDataFolder(), "Greenlist.yml");
         }
-        customConfig = YamlConfiguration.loadConfiguration(customConfigFile);
+        greenlistConfig = YamlConfiguration.loadConfiguration(greenlistConfigFile);
 
         // Look for defaults in the jar
         InputStream defConfigStream = Blueprint.getPlugin().getResource("Greenlist.yml");
         if (defConfigStream != null) {
             YamlConfiguration defConfig = YamlConfiguration.loadConfiguration(defConfigStream);
-            customConfig.setDefaults(defConfig);
+            greenlistConfig.setDefaults(defConfig);
         }
     }
 
-    public static FileConfiguration getCustomConfig() {
-        if (customConfig == null) {
-            reloadCustomConfig();
+    public static FileConfiguration getGreenlistConfig() {
+        if (greenlistConfig == null) {
+            reloadGreenlistConfig();
         }
-        return customConfig;
+        return greenlistConfig;
     }
 
-    public static void saveCustomConfig() {
-        if (customConfig == null || customConfigFile == null) {
+    public static void saveGreenlistConfig() {
+        if (greenlistConfig == null || greenlistConfigFile == null) {
             return;
         }
         try {
-            getCustomConfig().save(customConfigFile);
+            getGreenlistConfig().save(greenlistConfigFile);
         } catch (IOException ex) {
-            Blueprint.error("Could not save config to " + customConfigFile, ex);
+            Blueprint.error("Could not save config to " + greenlistConfigFile, ex);
+        }
+    }
+
+    public static void reloadBlacklistConfig() {
+        if (blacklistConfigFile == null) {
+            blacklistConfigFile = new File(Blueprint.getPlugin().getDataFolder(), "List.yml");
+        }
+       blacklistConfig = YamlConfiguration.loadConfiguration(blacklistConfigFile);
+
+        // Look for defaults in the jar
+        InputStream defConfigStream = Blueprint.getPlugin().getResource("List.yml");
+        if (defConfigStream != null) {
+            YamlConfiguration defConfig = YamlConfiguration.loadConfiguration(defConfigStream);
+            blacklistConfig.setDefaults(defConfig);
+        }
+    }
+
+    public static FileConfiguration getBlacklistConfig() {
+        if (blacklistConfig == null) {
+            reloadBlacklistConfig();
+        }
+        return blacklistConfig;
+    }
+
+    public static void saveBlacklistConfig() {
+        if (blacklistConfig == null ||blacklistConfigFile == null) {
+            return;
+        }
+        try {
+            getBlacklistConfig().save(blacklistConfigFile);
+        } catch (IOException ex) {
+            Blueprint.error("Could not save config to " + blacklistConfigFile, ex);
         }
     }
 }

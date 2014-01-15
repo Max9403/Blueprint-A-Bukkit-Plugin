@@ -50,26 +50,26 @@ public class Blueprint extends JavaPlugin {
     }
 
     public static void info(String log) {
-        getPlugin().getServer().getLogger().log(Level.INFO, "[Blueprint] {0}", log);
+        getPlugin().getServer().getLogger().log(Level.INFO, "[Blueprint Builder] {0}", log);
     }
 
     public static void error(String log, Exception ex) {
-        getPlugin().getServer().getLogger().log(Level.SEVERE, "[Blueprint] {0}, disabaling", log);
+        getPlugin().getServer().getLogger().log(Level.SEVERE, "[Blueprint Builder] {0}, disabaling", log);
         getPlugin().getServer().getLogger().log(Level.SEVERE, null, ex);
         Bukkit.getServer().getPluginManager().disablePlugin(plugin);
     }
 
     public static void error(String log) {
-        getPlugin().getServer().getLogger().log(Level.SEVERE, "[Blueprint] {0}, disabaling", log);
+        getPlugin().getServer().getLogger().log(Level.SEVERE, "[Blueprint Builder] {0}, disabaling", log);
         Bukkit.getServer().getPluginManager().disablePlugin(plugin);
     }
 
     public static void warn(String log) {
-        getPlugin().getServer().getLogger().log(Level.WARNING, "[Blueprint] {0}", log);
+        getPlugin().getServer().getLogger().log(Level.WARNING, "[Blueprint Builder] {0}", log);
     }
 
     public static void debug(String log) {
-        getPlugin().getServer().getLogger().log(Level.FINE, "[Blueprint] {0}", log);
+        getPlugin().getServer().getLogger().log(Level.FINE, "[Blueprint Builder] {0}", log);
     }
 
     @Override
@@ -115,12 +115,20 @@ public class Blueprint extends JavaPlugin {
         setConfigDefaults();
         ConfigHandler.getDefaultBukkitConfig().options().copyDefaults(true);
         setGreenlistDefaults();
-        ConfigHandler.getCustomConfig().options().copyDefaults(true);
+        ConfigHandler.getGreenlistConfig().options().copyDefaults(true);
+        setBlacklistDefaults();
+        ConfigHandler.getBlacklistConfig().options().copyDefaults(true);
         getServer().getPluginManager().registerEvents(new PlayerListener(), this);
         DataHandler.setupDB();
         Commands.register();
-        ConfigHandler.saveCustomConfig();
+        ConfigHandler.saveGreenlistConfig();
+        ConfigHandler.saveBlacklistConfig();
         plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, new BlueprintBuild(plugin), ConfigHandler.getDefaultBukkitConfig().getInt("limits.time to check", 60), ConfigHandler.getDefaultBukkitConfig().getInt("limits.time to check", 60));
+        if (ConfigHandler.getDefaultBukkitConfig().getBoolean("limits.blacklist")) {
+            info("Running in blacklist mode");
+        } else {
+            info("Running in whitelist mode");
+        }
     }
 
     @Override
@@ -139,14 +147,20 @@ public class Blueprint extends JavaPlugin {
         ConfigHandler.getDefaultBukkitConfig().addDefault("database.password", "");
         ConfigHandler.getDefaultBukkitConfig().addDefault("limits.blocks at a time", 20);
         ConfigHandler.getDefaultBukkitConfig().addDefault("limits.time to check", 60);
+        ConfigHandler.getDefaultBukkitConfig().addDefault("limits.blacklist", true);
     }
 
     private void setGreenlistDefaults() {
-        ConfigHandler.getCustomConfig().addDefault("Greenlist Items", Arrays.asList(new Integer[]{
+        ConfigHandler.getGreenlistConfig().addDefault("Greenlist Items", Arrays.asList(new Integer[]{
             31,
             32,
-            102,
             175
+        }));
+    }
+
+    private void setBlacklistDefaults() {
+        ConfigHandler.getBlacklistConfig().addDefault("List Items", Arrays.asList(new Integer[]{
+            46
         }));
     }
 }
