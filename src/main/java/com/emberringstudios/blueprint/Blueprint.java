@@ -10,12 +10,16 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.InvalidDescriptionException;
 import org.bukkit.plugin.InvalidPluginException;
 import org.bukkit.plugin.UnknownDependencyException;
@@ -51,7 +55,7 @@ public class Blueprint extends JavaPlugin {
 
     public static void error(String log, Exception ex) {
         getPlugin().getServer().getLogger().log(Level.SEVERE, "[Blueprint] {0}, disabaling", log);
-       getPlugin().getServer().getLogger().log(Level.SEVERE, null, ex);
+        getPlugin().getServer().getLogger().log(Level.SEVERE, null, ex);
         Bukkit.getServer().getPluginManager().disablePlugin(plugin);
     }
 
@@ -110,9 +114,12 @@ public class Blueprint extends JavaPlugin {
 
         setConfigDefaults();
         ConfigHandler.getDefaultBukkitConfig().options().copyDefaults(true);
+        setGreenlistDefaults();
+        ConfigHandler.getCustomConfig().options().copyDefaults(true);
         getServer().getPluginManager().registerEvents(new PlayerListener(), this);
         DataHandler.setupDB();
         Commands.register();
+        ConfigHandler.saveCustomConfig();
         plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, new BlueprintBuild(plugin), ConfigHandler.getDefaultBukkitConfig().getInt("limits.time to check", 60), ConfigHandler.getDefaultBukkitConfig().getInt("limits.time to check", 60));
     }
 
@@ -132,5 +139,14 @@ public class Blueprint extends JavaPlugin {
         ConfigHandler.getDefaultBukkitConfig().addDefault("database.password", "");
         ConfigHandler.getDefaultBukkitConfig().addDefault("limits.blocks at a time", 20);
         ConfigHandler.getDefaultBukkitConfig().addDefault("limits.time to check", 60);
+    }
+
+    private void setGreenlistDefaults() {
+        ConfigHandler.getCustomConfig().addDefault("Greenlist Items", Arrays.asList(new Integer[]{
+            31,
+            32,
+            102,
+            175
+        }));
     }
 }

@@ -118,8 +118,6 @@ public class Commands {
                                     break;
                                 }
                             }
-                        } else {
-                            continue;
                         }
                     }
                     if (resCheck > 0) {

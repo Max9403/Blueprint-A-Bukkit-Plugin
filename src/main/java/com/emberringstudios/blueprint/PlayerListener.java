@@ -31,14 +31,8 @@ import org.bukkit.metadata.MetadataValue;
  */
 public class PlayerListener implements Listener {
     
-    private final static List<Material> ignoreList = new CopyOnWriteArrayList();
+    private final static List<Integer> ignoreList =ConfigHandler.getCustomConfig().getIntegerList("Greenlist Items");
     
-    static {
-        ignoreList.add(Material.DEAD_BUSH);
-        ignoreList.add(Material.LONG_GRASS);
-        ignoreList.add(Material.THIN_GLASS);
-        ignoreList.add(Material.DOUBLE_PLANT);
-    }
 
 //    @EventHandler
 //    public void onExplosionEvent(ExplosionPrimeEvent epe) {
@@ -214,7 +208,7 @@ public class PlayerListener implements Listener {
             if (DataHandler.checkPlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? bbe.getPlayer().getUniqueId().toString() : bbe.getPlayer().getName(), bbe.getBlock())) {
                 DataHandler.removePlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? bbe.getPlayer().getUniqueId().toString() : bbe.getPlayer().getName(), bbe.getBlock(), bbe.getPlayer().getWorld().getName());
             } else {
-                if (!ignoreList.contains(bbe.getBlock().getType())) {
+                if (!ignoreList.contains(bbe.getBlock().getTypeId())) {
                     bbe.setCancelled(true);
                 }
             }

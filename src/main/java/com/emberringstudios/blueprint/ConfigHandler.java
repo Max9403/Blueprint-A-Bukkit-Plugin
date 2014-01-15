@@ -1,6 +1,10 @@
 package com.emberringstudios.blueprint;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.logging.Logger;
 import lib.PatPeter.SQLibrary.DB2;
 import lib.PatPeter.SQLibrary.Database;
@@ -18,6 +22,7 @@ import lib.PatPeter.SQLibrary.PostgreSQL;
 import lib.PatPeter.SQLibrary.SQLite;
 import lib.PatPeter.SQLibrary.mSQL;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 
 /**
  *
@@ -26,6 +31,8 @@ import org.bukkit.configuration.file.FileConfiguration;
 public class ConfigHandler {
 
     private volatile static Database theDataHub = null;
+    private volatile static FileConfiguration customConfig = null;
+    private volatile static File customConfigFile = null;
 
     /**
      * @return the defaultBukkitConfig
@@ -96,5 +103,47 @@ public class ConfigHandler {
             DataHandler.setDatabaseType(localConfig.getInt("database.type", 0));
         }
         return theDataHub;
+    }
+
+    //public static List<Integer> getGreenList() {
+
+        /*
+         ignoreList.add(Material.DEAD_BUSH);
+         ignoreList.add(Material.LONG_GRASS);
+         ignoreList.add(Material.THIN_GLASS);
+         ignoreList.add(Material.DOUBLE_PLANT);
+         */
+    //}
+
+    public static void reloadCustomConfig() {
+        if (customConfigFile == null) {
+            customConfigFile = new File(Blueprint.getPlugin().getDataFolder(), "Greenlist.yml");
+        }
+        customConfig = YamlConfiguration.loadConfiguration(customConfigFile);
+
+        // Look for defaults in the jar
+        InputStream defConfigStream = Blueprint.getPlugin().getResource("Greenlist.yml");
+        if (defConfigStream != null) {
+            YamlConfiguration defConfig = YamlConfiguration.loadConfiguration(defConfigStream);
+            customConfig.setDefaults(defConfig);
+        }
+    }
+
+    public static FileConfiguration getCustomConfig() {
+        if (customConfig == null) {
+            reloadCustomConfig();
+        }
+        return customConfig;
+    }
+
+    public static void saveCustomConfig() {
+        if (customConfig == null || customConfigFile == null) {
+            return;
+        }
+        try {
+            getCustomConfig().save(customConfigFile);
+        } catch (IOException ex) {
+            Blueprint.error("Could not save config to " + customConfigFile, ex);
+        }
     }
 }
