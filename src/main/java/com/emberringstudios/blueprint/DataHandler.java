@@ -44,12 +44,12 @@ public class DataHandler {
         databaseType = aDatabaseType;
     }
 
-    public static void addPlayerBlock(final String name, final Block placedBlock) {
+    public static void addPlayerBlock(final String name, final ItemStack item, final Block placedBlock) {
         try {
             if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
                 setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
             }
-            query("INSERT INTO blocks (playerID, blockID, blockX, blockY, blockZ, blockMeta, world) VALUES ('" + name + "', '" + placedBlock.getType().getId() + "', " + placedBlock.getX() + ", " + placedBlock.getY() + ", " + placedBlock.getZ() + ", " + (int) placedBlock.getData() + ", '" + placedBlock.getWorld().getName() + "');");
+            query("INSERT INTO blocks (playerID,  itemID, itemMeta, blockID, blockX, blockY, blockZ, blockMeta, world) VALUES ('" + name + "', " + item.getType().getId() + ", '" + (int) item.getData().getData() + "', '" + placedBlock.getType().getId() + "', " + placedBlock.getX() + ", " + placedBlock.getY() + ", " + placedBlock.getZ() + ", " + (int) placedBlock.getData() + ", '" + placedBlock.getWorld().getName() + "');");
         } catch (SQLException ex) {
             Blueprint.error("Couldn't add block to player", ex);
         }
@@ -356,12 +356,14 @@ public class DataHandler {
                     query("CREATE TABLE IF NOT EXISTS blocks (\n"
                             + " id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
                             + " playerID TEXT NOT NULL,\n"
-                            + " world TEXT NOT NULL,\n"
+                            + " itemID INTEGER NOT NULL,\n"
+                            + " itemMeta MEDIUMTEXT NOT NULL,\n"
                             + " blockID TEXT NOT NULL,\n"
                             + " blockX INTEGER NOT NULL,\n"
                             + " blockY INTEGER NOT NULL,\n"
                             + " blockZ INTEGER NOT NULL,\n"
-                            + " blockMeta INTEGER NOT NULL);");
+                            + " blockMeta INTEGER NOT NULL,\n"
+                            + " world TEXT NOT NULL);");
 
                     query("CREATE TABLE IF NOT EXISTS chests (\n"
                             + " id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
@@ -390,12 +392,14 @@ public class DataHandler {
                     query("CREATE TABLE IF NOT EXISTS blocks (\n"
                             + " id INT NOT NULL AUTO_INCREMENT,\n"
                             + " playerID VARCHAR(45) NOT NULL,\n"
-                            + " world VARCHAR(45) NOT NULL,\n"
+                            + " itemID INT NOT NULL,\n"
+                            + " itemMeta MEDIUMTEXT NOT NULL,\n"
                             + " blockID INT NOT NULL,\n"
                             + " blockX INT NOT NULL,\n"
                             + " blockY INT NOT NULL,\n"
                             + " blockZ INT NOT NULL,\n"
                             + " blockMeta INT NOT NULL,\n"
+                            + " world VARCHAR(45) NOT NULL,\n"
                             + " PRIMARY KEY (id));");
 
                     query("CREATE TABLE IF NOT EXISTS chests (\n"
@@ -555,7 +559,7 @@ public class DataHandler {
 
     public static boolean isPlayerChest(Block placedBlock) {
         try {
-           return Integer.parseInt(query("SELECT COUNT(*) AS Count FROM chests WHERE blockX = " + placedBlock.getX() + " AND blockY = " + placedBlock.getY() + " AND blockZ  = " + placedBlock.getX() + ";").get(0).getKey("Count")) > 0;
+            return Integer.parseInt(query("SELECT COUNT(*) AS Count FROM chests WHERE blockX = " + placedBlock.getX() + " AND blockY = " + placedBlock.getY() + " AND blockZ  = " + placedBlock.getX() + ";").get(0).getKey("Count")) > 0;
         } catch (SQLException ex) {
             Blueprint.error("Couldn't activate player", ex);
         }

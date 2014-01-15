@@ -9,14 +9,13 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.block.Chest;
-import org.bukkit.block.DoubleChest;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.LazyMetadataValue;
 import org.bukkit.metadata.MetadataValue;
 import org.yaml.snakeyaml.Yaml;
@@ -113,14 +112,14 @@ public class Commands {
                         Inventory inv;
                         if (loc.getBlock().getState() instanceof InventoryHolder) {
                             inv = ((InventoryHolder) loc.getBlock().getState()).getInventory();
-                            if (inv.getContents().length > 0) {
-                                resCheck++;
+                            for (ItemStack check : inv.getContents()) {
+                                if (check != null) {
+                                    resCheck++;
+                                    break;
+                                }
                             }
                         } else {
                             continue;
-                        }
-                        if (inv.getContents().length > 0) {
-                            resCheck++;
                         }
                     }
                     if (resCheck > 0) {

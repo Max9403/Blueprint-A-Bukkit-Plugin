@@ -113,7 +113,7 @@ public class Blueprint extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PlayerListener(), this);
         DataHandler.setupDB();
         Commands.register();
-        plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, new BlueprintBuild(plugin), 60L, 60L);
+        plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, new BlueprintBuild(plugin), ConfigHandler.getDefaultBukkitConfig().getInt("limits.time to check", 60), ConfigHandler.getDefaultBukkitConfig().getInt("limits.time to check", 60));
     }
 
     @Override

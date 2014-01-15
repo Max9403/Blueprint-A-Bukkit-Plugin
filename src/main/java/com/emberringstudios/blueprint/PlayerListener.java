@@ -1,12 +1,9 @@
 package com.emberringstudios.blueprint;
 
-import java.text.MessageFormat;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
-import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event.Result;
 import org.bukkit.event.EventHandler;
@@ -16,19 +13,16 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
-import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.EntityEvent;
-import org.bukkit.event.entity.ExplosionPrimeEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.metadata.LazyMetadataValue;
 import org.bukkit.metadata.MetadataValue;
-import org.bukkit.util.Vector;
 
 /**
  *
@@ -52,7 +46,15 @@ public class PlayerListener implements Listener {
 //        if (DataHandler.isBlueprintBlock(Material.TNT.getId(), (int) (placedBlock.getX() + test.getX()), (int) (placedBlock.getY() + test.getY()), (int) (placedBlock.getZ() + test.getZ()), placedBlock.getWorld().getName())) {
 //            epe.setCancelled(true);
 //        }
-//    }
+//    }    
+    @EventHandler
+    public void onPlayerBucketEmpty(PlayerBucketEmptyEvent pbee) {
+        if (!pbee.isCancelled() && DataHandler.isPlayerActive(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? pbee.getPlayer().getUniqueId().toString() : pbee.getPlayer().getName())) {
+
+            DataHandler.addPlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? pbee.getPlayer().getUniqueId().toString() : pbee.getPlayer().getName(), pbee.getItemStack(), pbee.getBlockClicked().getRelative(pbee.getBlockFace()));
+        }
+    }
+
     @EventHandler
     public void onPhysicsEvent(BlockPhysicsEvent bpe) {
         if (DataHandler.isBlueprintBlock(bpe.getBlock())) {
@@ -216,7 +218,7 @@ public class PlayerListener implements Listener {
     public void onBlockPlace(BlockPlaceEvent bpe) {
         if (!bpe.isCancelled() && DataHandler.isPlayerActive(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? bpe.getPlayer().getUniqueId().toString() : bpe.getPlayer().getName()) && bpe.canBuild()) {
 
-            DataHandler.addPlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? bpe.getPlayer().getUniqueId().toString() : bpe.getPlayer().getName(), bpe.getBlockPlaced());
+            DataHandler.addPlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? bpe.getPlayer().getUniqueId().toString() : bpe.getPlayer().getName(), bpe.getItemInHand(), bpe.getBlockPlaced());
             if (bpe.getBlockPlaced().getType() == Material.REDSTONE_TORCH_ON) {
                 bpe.getBlockPlaced().setType(Material.REDSTONE_TORCH_OFF);
             } else if (bpe.getBlockPlaced().getType() == Material.TNT) {

@@ -24,6 +24,8 @@ class BlueprintBuild implements Runnable {
     }
 
     public void run() {
+        int maxBlocks =  ConfigHandler.getDefaultBukkitConfig().getInt("limits.blocks at a time", 20);
+        int placedBlocks = 0;
 //        ConcurrentHashMap<String, List<Location>> chestLocations = new ConcurrentHashMap();
 //        for (String name : names) {
 //            chestLocations.put(name, DataHandler.getPlayerChestLocations(name));
@@ -50,6 +52,9 @@ class BlueprintBuild implements Runnable {
                             int remaining = (needed - inChest) > 0 ? needed - inChest : 0;
                             List<BlockData> blocks = DataHandler.getBlueprintBuildBlockOfTypInWorld(name, mat, loc.getBlock().getWorld().getName());
                             for (int counter = 0; counter < needed - remaining; counter++) {
+                                if(placedBlocks >= maxBlocks){
+                                    return;
+                                }
                                 inv.removeItem(new ItemStack(mat, 1));
                                 loc.getBlock().getState().update(true);
                                 DataHandler.removePlayerBlock(name, blocks.get(counter), loc.getBlock().getWorld().getName());
@@ -61,6 +66,7 @@ class BlueprintBuild implements Runnable {
                                 } catch (NoWorldGivenException ex) {
                                     blocks.get(counter).loadBlockIntoWorld(loc.getBlock().getWorld());
                                 }
+                                 placedBlocks++;
                             }
 
                             it.remove(); // avoids a ConcurrentModificationException
