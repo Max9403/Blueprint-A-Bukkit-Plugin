@@ -10,6 +10,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
@@ -29,9 +30,9 @@ import org.bukkit.metadata.MetadataValue;
  * @author Max9403 <Max9403@live.com>
  */
 public class PlayerListener implements Listener {
-
+    
     private final static List<Material> ignoreList = new CopyOnWriteArrayList();
-
+    
     static {
         ignoreList.add(Material.DEAD_BUSH);
         ignoreList.add(Material.LONG_GRASS);
@@ -57,7 +58,7 @@ public class PlayerListener implements Listener {
             }
         }
     }
-
+    
     @EventHandler
     public void onPhysicsEvent(BlockPhysicsEvent bpe) {
         if (DataHandler.isBlueprintBlock(bpe.getBlock())) {
@@ -67,7 +68,14 @@ public class PlayerListener implements Listener {
             bpe.setCancelled(true);
         }
     }
-
+    
+    @EventHandler
+    public void onBlockFromTo(BlockFromToEvent bfte) {
+        if (DataHandler.isBlueprintBlockAtLocation(bfte.getBlock().getLocation()) && DataHandler.isPlayerActive(DataHandler.getBlockOwnerAtLocation(bfte.getBlock().getLocation()))) {
+            bfte.setCancelled(true);
+        }
+    }
+    
     @EventHandler
     public void onInventoryOpenEvent(InventoryOpenEvent ioe) {
         if (ioe.getPlayer() instanceof Player) {
@@ -79,7 +87,7 @@ public class PlayerListener implements Listener {
             }
         }
     }
-
+    
     @EventHandler
     public void onEntityDamage(EntityDamageEvent edea) {
         if (edea instanceof EntityDamageByEntityEvent) {
@@ -99,7 +107,7 @@ public class PlayerListener implements Listener {
             }
         }
     }
-
+    
     @EventHandler
     public void onPlayerInteract(final PlayerInteractEvent pie) {
         Player player = pie.getPlayer();
@@ -128,7 +136,7 @@ public class PlayerListener implements Listener {
                                     if (!DataHandler.isPlayerChest(pie.getClickedBlock())) {
                                         DataHandler.addPlayerChest(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName(), pie.getClickedBlock());
                                         player.setMetadata("inMarkMode", new LazyMetadataValue(Blueprint.getPlugin(), new Callable() {
-
+                                            
                                             public Object call() throws Exception {
                                                 return false;
                                             }
@@ -161,7 +169,7 @@ public class PlayerListener implements Listener {
                                 if (!DataHandler.isPlayerChest(pie.getClickedBlock())) {
                                     DataHandler.addPlayerChest(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName(), pie.getClickedBlock());
                                     player.setMetadata("inMarkMode", new LazyMetadataValue(Blueprint.getPlugin(), new Callable() {
-
+                                        
                                         public Object call() throws Exception {
                                             return false;
                                         }
@@ -178,7 +186,7 @@ public class PlayerListener implements Listener {
             }
         }
     }
-
+    
     @EventHandler
     public void onInventoryClick(InventoryClickEvent ice) {
         if (ice.getWhoClicked() instanceof Player) {
@@ -192,14 +200,14 @@ public class PlayerListener implements Listener {
             }
         }
     }
-
+    
     @EventHandler
     public void onItemDrop(PlayerDropItemEvent pde) {
         if (DataHandler.isPlayerActive(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? pde.getPlayer().getUniqueId().toString() : pde.getPlayer().getName())) {
             pde.setCancelled(true);
         }
     }
-
+    
     @EventHandler
     public void onBlockBreak(BlockBreakEvent bbe) {
         if (DataHandler.isPlayerActive(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? bbe.getPlayer().getUniqueId().toString() : bbe.getPlayer().getName())) {
@@ -212,18 +220,18 @@ public class PlayerListener implements Listener {
             }
         }
     }
-
+    
     @EventHandler
     public void onBlockRedstoneChange(BlockRedstoneEvent bre) {
         if (DataHandler.isBlueprintBlock(bre.getBlock())) {
             bre.setNewCurrent(0);
         }
     }
-
+    
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent bpe) {
         if (!bpe.isCancelled() && DataHandler.isPlayerActive(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? bpe.getPlayer().getUniqueId().toString() : bpe.getPlayer().getName()) && bpe.canBuild()) {
-
+            
             DataHandler.addPlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? bpe.getPlayer().getUniqueId().toString() : bpe.getPlayer().getName(), bpe.getItemInHand(), bpe.getBlockPlaced());
             if (bpe.getBlockPlaced().getType() == Material.REDSTONE_TORCH_ON) {
                 bpe.getBlockPlaced().setType(Material.REDSTONE_TORCH_OFF);
