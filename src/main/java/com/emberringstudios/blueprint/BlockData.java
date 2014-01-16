@@ -27,6 +27,11 @@ public class BlockData {
         this.data = data;
     }
 
+    @Override
+    public String toString() {
+        return "BlockData{" + "type=" + type + ", locX=" + locX + ", locY=" + locY + ", locZ=" + locZ + ", data=" + data + ", blockWorld=" + blockWorld + '}';
+    }
+
     public BlockData(final Material blockType, final int locX, final int locY, final int locZ, final byte data) {
         this.type = blockType.getId();
         this.locX = locX;
@@ -168,8 +173,7 @@ public class BlockData {
             throw new NoWorldGivenException("Developer forgot to set a world for this block");
         }
         Block modBlock = this.blockWorld.getBlockAt(locX, locY, locZ);
-        modBlock.setTypeId(type);
-        modBlock.setData(data);
+        modBlock.setTypeIdAndData(type, data, true);
     }
 
     public boolean equalToBlock(Block tempBlock) {

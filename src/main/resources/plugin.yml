@@ -1,6 +1,6 @@
 name: Blueprint Builder
 main: com.emberringstudios.blueprint.Blueprint
-version: 1.11.0
+version: 1.0.0
 author: Max9403
 description: Allows you to create a blueprint of what you want to build and build it automatically when you have collected all the materials for it
 softdepend: [SQLibrary]

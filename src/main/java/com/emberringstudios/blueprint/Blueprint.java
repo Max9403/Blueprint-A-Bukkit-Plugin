@@ -123,7 +123,8 @@ public class Blueprint extends JavaPlugin {
         Commands.register();
         ConfigHandler.saveGreenlistConfig();
         ConfigHandler.saveBlacklistConfig();
-        plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, new BlueprintBuild(plugin), ConfigHandler.getDefaultBukkitConfig().getInt("limits.time to check", 60), ConfigHandler.getDefaultBukkitConfig().getInt("limits.time to check", 60));
+        plugin.getServer().getScheduler().runTaskTimer(plugin, new BlueprintBuild(plugin), ConfigHandler.getDefaultBukkitConfig().getInt("limits.time to check", 60), ConfigHandler.getDefaultBukkitConfig().getInt("limits.time to check", 60));
+        plugin.getServer().getScheduler().runTaskTimer(plugin, new BlockSetter(), ConfigHandler.getDefaultBukkitConfig().getInt("limits.time to check", 60), ConfigHandler.getDefaultBukkitConfig().getInt("limits.time to check", 60));
         if (ConfigHandler.getDefaultBukkitConfig().getBoolean("limits.blacklist")) {
             info("Running in blacklist mode");
         } else {

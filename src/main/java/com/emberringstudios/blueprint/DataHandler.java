@@ -607,12 +607,14 @@ public class DataHandler {
         return found;
     }
 
-    public static List<Integer> getBlueprintItemTypes(final String playerID, final String worldID) {
-        List<Integer> blockList = new CopyOnWriteArrayList();
+    public static List<ItemStack> getBlueprintItemTypes(final String playerID, final String worldID) {
+        List<ItemStack> blockList = new CopyOnWriteArrayList();
         try {
-            List<ResultData> result = query("SELECT DISTINCT  itemID FROM blocks WHERE playerID = '" + playerID + "' AND world = '" + worldID + "';");
+            List<ResultData> result = query("SELECT DISTINCT  itemID, itemMeta FROM blocks WHERE playerID = '" + playerID + "' AND world = '" + worldID + "';");
             for (ResultData data : result) {
-                blockList.add(Integer.parseInt(data.getKey("itemID")));
+                ItemStack temp = new ItemStack(Integer.parseInt(data.getKey("itemID")));
+                temp.getData().setData(Byte.parseByte(data.getKey("itemMeta")));
+                blockList.add(temp);
             }
         } catch (SQLException ex) {
             Blueprint.error("Couldn't deactivate player", ex);
@@ -620,10 +622,10 @@ public class DataHandler {
         return blockList;
     }
 
-    public static int getBlueprintBlockOfTypInWorldNeededFromItem(final String playerID, final int mat, final String worldID) {
+    public static int getBlueprintBlockOfTypInWorldNeededFromItem(final String playerID, final int matID, final int matData, final String worldID) {
         int count = 0;
         try {
-            count = Integer.parseInt(query("SELECT COUNT(*) AS Count FROM blocks WHERE playerID = '" + playerID + "' AND world = '" + worldID + "' AND itemID =" + mat + ";").get(0).getKey("Count"));
+            count = Integer.parseInt(query("SELECT COUNT(*) AS Count FROM blocks WHERE playerID = '" + playerID + "' AND world = '" + worldID + "'AND itemID = " + matID + " AND itemData = " + matData + ";").get(0).getKey("Count"));
 
         } catch (SQLException ex) {
             Blueprint.error("Couldn't deactivate player", ex);
@@ -631,10 +633,10 @@ public class DataHandler {
         return count;
     }
 
-    public static List<BlockData> getBlueprintBuildBlockOfTypInWorldFromItem(String playerID, int mat, String worldID) {
+    public static List<BlockData> getBlueprintBuildBlockOfTypInWorldFromItem(final String playerID, final int matID, final int matData, final String worldID) {
         List<BlockData> blockList = new CopyOnWriteArrayList();
         try {
-            List<ResultData> result = query("SELECT blockID, blockX, blockY, blockZ, blockMeta FROM blocks WHERE playerID = '" + playerID + "' AND world = '" + worldID + "' AND itemID = " + mat + ";");
+            List<ResultData> result = query("SELECT blockID, blockX, blockY, blockZ, blockMeta FROM blocks WHERE playerID = '" + playerID + "' AND world = '" + worldID + "' AND itemID = " + matID + " AND itemData = " + matData + ";");
             for (ResultData data : result) {
                 blockList.add(new BlockData(Integer.parseInt(data.getKey("blockID")),
                         Integer.parseInt(data.getKey("blockX")),
@@ -657,5 +659,46 @@ public class DataHandler {
             Blueprint.error("Couldn't deactivate player", ex);
         }
         return result;
+    }
+
+    public static int getBlueprintBlockOfTypInWorldNeededFromItem(final String playerID, final ItemStack mat, final String worldID) {
+        int count = 0;
+        try {
+            count = Integer.parseInt(query("SELECT COUNT(*) AS Count FROM blocks WHERE playerID = '" + playerID + "' AND world = '" + worldID + "'AND itemID = " + mat.getTypeId() + " AND itemMeta = " + (int) mat.getData().getData() + ";").get(0).getKey("Count"));
+        } catch (SQLException ex) {
+            Blueprint.error("Couldn't deactivate player", ex);
+        }
+        return count;
+    }
+
+    public static List<BlockData> getBlueprintBuildBlockOfTypInWorldFromItem(final String playerID, final ItemStack mat, final String worldID) {
+        List<BlockData> blockList = new CopyOnWriteArrayList();
+        try {
+            List<ResultData> result = query("SELECT blockID, blockX, blockY, blockZ, blockMeta FROM blocks WHERE playerID = '" + playerID + "' AND world = '" + worldID + "' AND itemID = " + mat.getTypeId() + " AND itemMeta = " + (int) mat.getData().getData() + ";");
+            for (ResultData data : result) {
+                blockList.add(new BlockData(Integer.parseInt(data.getKey("blockID")),
+                        Integer.parseInt(data.getKey("blockX")),
+                        Integer.parseInt(data.getKey("blockY")),
+                        Integer.parseInt(data.getKey("blockZ")),
+                        Byte.parseByte(data.getKey("blockMeta")),
+                        Bukkit.getWorld(worldID)));
+            }
+        } catch (SQLException ex) {
+            Blueprint.error("Couldn't deactivate player", ex);
+        }
+        return blockList;
+    }
+
+    public static void removeBlueprintBlock(BlockData placedBlock, String world) {
+        try {
+            query("DELETE FROM blocks WHERE blockID = '" + placedBlock.getType()
+                    + "' AND blockX = " + placedBlock.getX()
+                    + " AND blockY = " + placedBlock.getY()
+                    + " AND blockZ = " + placedBlock.getZ()
+                    + " AND blockMeta = " + (int) placedBlock.getData()
+                    + " AND world = '" + world + "';");
+        } catch (SQLException ex) {
+            Blueprint.error("Couldn't activate player", ex);
+        }
     }
 }

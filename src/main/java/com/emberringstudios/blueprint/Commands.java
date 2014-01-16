@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -80,7 +81,7 @@ public class Commands {
 
         public boolean onCommand(CommandSender sender, Command cmnd, String string, String[] strings) {
             if (sender instanceof Player) {
-                Player player = (Player) sender;
+                final Player player = (Player) sender;
                 final String playerId = ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getPlayer().getName();
                 if (player.getGameMode() == GameMode.CREATIVE) {
                     if (DataHandler.isPlayerActive(playerId)) {
@@ -88,17 +89,9 @@ public class Commands {
                         player.getInventory().setArmorContents(tempStore.getArmour());
                         player.getInventory().setContents(tempStore.getItems());
                         player.teleport(DataHandler.getPlayerLocation(playerId).convertToLocation(player.getWorld()));
-                        List<BlockData> blocks = DataHandler.getBlueprint(playerId, player.getWorld().getName());
-                        for (BlockData thatData : blocks) {
-                            try {
-                                thatData.setType(Material.AIR.getId());
-                                thatData.loadBlockIntoWorld();
-                            } catch (NoWorldGivenException ex) {
-                                Logger.getLogger(Commands.class.getName()).log(Level.SEVERE, null, ex);
-                            }
-                        }
+                        BlockSetter.getBlocks().airAll(DataHandler.getBlueprint(playerId, player.getWorld().getName()));
                         player.setGameMode(DataHandler.getOriginalPlayerGameMode(playerId));
-                        player.sendMessage("You are no longer in blueprint mode");
+                        player.sendMessage("You are no longer in blueprint mode, just gona deconstruct it");
                     }
                 } else {
                     if (!DataHandler.setOriginalPlayerGameMode(playerId, player.getGameMode())) {
@@ -127,32 +120,16 @@ public class Commands {
                     if (resCheck) {
                         player.sendMessage(ChatColor.RED + "There are blocks in your resource chest" + (playerChestLocations.size() > 1 ? "s. " : ". ") + "Blocks in your resource chest will still placed even when in blueprint mode and will have to be removed manualy");
                     }
+
                     Yaml durpStore = new Yaml();
                     String items = durpStore.dump(ItemSerial.serializeItemList(player.getInventory().getContents()));
                     String armour = durpStore.dump(ItemSerial.serializeItemList(player.getInventory().getArmorContents()));
 
                     DataHandler.activatePlayer(playerId, items, armour);
                     DataHandler.setPlayerLocation(playerId, player.getLocation());
-                    List<BlockData> blocks = DataHandler.getBlueprint(playerId, player.getWorld().getName());
-                    for (BlockData thatData : blocks) {
-                        if(thatData.getType() == 46){
-                            continue;
-                        }
-                        try {
-                            Block tempBlock = player.getWorld().getBlockAt(thatData.getX(), thatData.getY(), thatData.getZ());
-                            if (player.getWorld().getBlockAt(thatData.getX(), thatData.getY(), thatData.getZ()).getTypeId() == 0) {
-                                thatData.loadBlockIntoWorld();
-                            } else {
-                                if (thatData.equalToBlock(tempBlock)) {
-                                    DataHandler.removePlayerBlock(playerId, thatData, player.getWorld().getName());
-                                }
-                            }
-                        } catch (NoWorldGivenException ex) {
-                            Logger.getLogger(Commands.class.getName()).log(Level.SEVERE, null, ex);
-                        }
-                    }
+                    BlockSetter.getBlocks().addAll(DataHandler.getBlueprint(playerId, player.getWorld().getName()));
                     player.setGameMode(GameMode.CREATIVE);
-                    player.sendMessage("You are now in blueprint mode");
+                    player.sendMessage("You are now in blueprint mode, just busy reconstructing it");
                 }
             } else {
                 sender.sendMessage("You must be a player!");
