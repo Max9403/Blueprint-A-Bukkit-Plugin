@@ -2,14 +2,9 @@ package com.emberringstudios.blueprint;
 
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -83,16 +78,14 @@ public class Commands {
             if (sender instanceof Player) {
                 final Player player = (Player) sender;
                 final String playerId = ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getPlayer().getName();
-                if (player.getGameMode() == GameMode.CREATIVE) {
-                    if (DataHandler.isPlayerActive(playerId)) {
-                        PlayerInventory tempStore = DataHandler.deactivatePlayer(playerId);
-                        player.getInventory().setArmorContents(tempStore.getArmour());
-                        player.getInventory().setContents(tempStore.getItems());
-                        player.teleport(DataHandler.getPlayerLocation(playerId).convertToLocation(player.getWorld()));
-                        BlockSetter.getBlocks().airAll(DataHandler.getBlueprint(playerId, player.getWorld().getName()));
-                        player.setGameMode(DataHandler.getOriginalPlayerGameMode(playerId));
-                        player.sendMessage("You are no longer in blueprint mode, just gona deconstruct it");
-                    }
+                if (DataHandler.isPlayerActive(playerId)) {
+                    PlayerInventory tempStore = DataHandler.deactivatePlayer(playerId);
+                    player.getInventory().setArmorContents(tempStore.getArmour());
+                    player.getInventory().setContents(tempStore.getItems());
+                    player.teleport(DataHandler.getPlayerLocation(playerId).convertToLocation(player.getWorld()));
+                    BlockSetter.getBlocks().airAll(DataHandler.getBlueprint(playerId, player.getWorld().getName()));
+                    player.setGameMode(DataHandler.getOriginalPlayerGameMode(playerId));
+                    player.sendMessage("You are no longer in blueprint mode, just gona deconstruct it");
                 } else {
                     if (!DataHandler.setOriginalPlayerGameMode(playerId, player.getGameMode())) {
                         sender.sendMessage("Something went wrong, we'll send the goblins to fix it");

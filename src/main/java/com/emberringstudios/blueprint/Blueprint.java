@@ -12,6 +12,7 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.util.Arrays;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -71,40 +72,10 @@ public class Blueprint extends JavaPlugin {
     @Override
     public void onEnable() {
         setPlugin(this);
-        if (!this.getServer().getPluginManager().isPluginEnabled("SQLibrary")) {
-            try {
-                info("Downloadind dependecy: SQLibrary");
-                URL url = new URL("http://repo.dakanilabs.com/content/repositories/public/lib/PatPeter/SQLibrary/SQLibrary/maven-metadata.xml");
-                URLConnection urlConnection = url.openConnection();
-                InputStream in = new BufferedInputStream(urlConnection.getInputStream());
-
-                DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-                DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-                Document doc = dBuilder.parse(in);
-                final String version = doc.getElementsByTagName("latest").item(0).getTextContent();
-                in.close();
-                url = new URL("http://repo.dakanilabs.com/content/repositories/public/lib/PatPeter/SQLibrary/SQLibrary/" + version + "/SQLibrary-" + version + ".jar");
-                final String path = plugin.getDataFolder().getParentFile().getAbsoluteFile() + "/SQLibrary-" + version + ".jar";
-                ReadableByteChannel rbc = Channels.newChannel(url.openStream());
-                FileOutputStream fos = new FileOutputStream(path);
-                fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
-                info("Finished downloading SQLibrary-" + version + ". Loading dependecy");
-                this.getServer().getPluginManager().loadPlugin(new File(path));
+        if (!this.getServer().getPluginManager().isPluginEnabled("SQLibrary") && this.getConfig().getBoolean("use.downloads", true)) {
+            info("Downloadind dependecy: SQLibrary");
+            if (PluginDownloader.downloadPlugin("43840")) {
                 info("Loaded SQLibrary");
-            } catch (MalformedURLException ex) {
-                error("Failed to download dependency", ex);
-            } catch (IOException ex) {
-                error("Failed to download dependency", ex);
-            } catch (ParserConfigurationException ex) {
-                error("Failed to download dependency", ex);
-            } catch (SAXException ex) {
-                error("Failed to download dependency", ex);
-            } catch (InvalidPluginException ex) {
-                error("Failed to load dependency", ex);
-            } catch (InvalidDescriptionException ex) {
-                error("Failed to load dependency", ex);
-            } catch (UnknownDependencyException ex) {
-                error("Failed to load dependency", ex);
             }
         }
 
@@ -137,6 +108,7 @@ public class Blueprint extends JavaPlugin {
 
     private void setConfigDefaults() {
         ConfigHandler.getDefaultBukkitConfig().addDefault("use.UUIDs", true);
+        ConfigHandler.getDefaultBukkitConfig().addDefault("use.downloads", true);
         ConfigHandler.getDefaultBukkitConfig().addDefault("database.type", 0);
         ConfigHandler.getDefaultBukkitConfig().addDefault("database.hostname", "localhost");
         ConfigHandler.getDefaultBukkitConfig().addDefault("database.port", 3306);
