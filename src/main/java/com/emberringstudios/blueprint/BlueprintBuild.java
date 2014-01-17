@@ -16,13 +16,13 @@ import org.bukkit.plugin.Plugin;
  * @author Max9403 <Max9403@live.com>
  */
 class BlueprintBuild implements Runnable {
-
+    
     private final Plugin plugin;
-
+    
     public BlueprintBuild(Plugin plugin) {
         this.plugin = plugin;
     }
-
+    
     public void run() {
         int maxBlocks = ConfigHandler.getDefaultBukkitConfig().getInt("limits.blocks at a time", 20);
         int placedBlocks = 0;
@@ -56,8 +56,11 @@ class BlueprintBuild implements Runnable {
                                     if (placedBlocks >= maxBlocks) {
                                         return;
                                     }
-                                    mat.setAmount(1);
-                                    inv.removeItem(mat);
+                                    if (temp.getAmount() > 1) {
+                                        temp.setAmount(temp.getAmount() - 1);
+                                    } else {
+                                        inv.remove(temp);
+                                    }
                                     loc.getBlock().getState().update(true);
                                     DataHandler.removePlayerBlock(name, blocks.get(counter), loc.getBlock().getWorld().getName());
                                     if (blocks.get(counter).getType() == Material.REDSTONE_TORCH_ON.getId()) {

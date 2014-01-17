@@ -6,7 +6,10 @@ import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import lib.PatPeter.SQLibrary.Database;
 import lib.PatPeter.SQLibrary.SQLite;
 import org.bukkit.Bukkit;
@@ -35,6 +38,7 @@ public class DataHandler {
     public static final int mSQL = 11;
     public static final int Oracle = 12;
     public static final int PostgreSQL = 13;
+    private static volatile ConcurrentHashMap<String, Boolean> activeUsers = new ConcurrentHashMap();
 
     public static int getDatabaseType() {
         return databaseType;
@@ -44,23 +48,23 @@ public class DataHandler {
         databaseType = aDatabaseType;
     }
 
-    public static void addPlayerBlock(final String name, final ItemStack item, final Block placedBlock) {
+    public static void addPlayerBlock(final String name, final ItemStack item, final BlockData placedBlock) {
         try {
             if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
                 setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
             }
-            query("INSERT INTO blocks (playerID,  itemID, itemMeta, blockID, blockX, blockY, blockZ, blockMeta, world) VALUES ('" + name + "', " + item.getType().getId() + ", '" + (int) item.getData().getData() + "', '" + placedBlock.getType().getId() + "', " + placedBlock.getX() + ", " + placedBlock.getY() + ", " + placedBlock.getZ() + ", " + (int) placedBlock.getData() + ", '" + placedBlock.getWorld().getName() + "');");
+            query("INSERT INTO blocks (playerID,  itemID, itemMeta, blockID, blockX, blockY, blockZ, blockMeta, world) VALUES ('" + name + "', " + item.getType().getId() + ", '" + (int) item.getData().getData() + "', '" + placedBlock.getType() + "', " + placedBlock.getX() + ", " + placedBlock.getY() + ", " + placedBlock.getZ() + ", " + (int) placedBlock.getData() + ", '" + placedBlock.getBlockWorld().getName() + "');");
         } catch (SQLException ex) {
             Blueprint.error("Couldn't add block to player", ex);
         }
     }
 
-    public static void addPlayerBlock(final String name, final int itemID, final int itemData, final Block placedBlock) {
+    public static void addPlayerBlock(final String name, final int itemID, final int itemData, final BlockData placedBlock) {
         try {
             if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
                 setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
             }
-            query("INSERT INTO blocks (playerID,  itemID, itemMeta, blockID, blockX, blockY, blockZ, blockMeta, world) VALUES ('" + name + "', " + itemID + ", '" + itemData + "', '" + placedBlock.getType().getId() + "', " + placedBlock.getX() + ", " + placedBlock.getY() + ", " + placedBlock.getZ() + ", " + (int) placedBlock.getData() + ", '" + placedBlock.getWorld().getName() + "');");
+            query("INSERT INTO blocks (playerID,  itemID, itemMeta, blockID, blockX, blockY, blockZ, blockMeta, world) VALUES ('" + name + "', " + itemID + ", '" + itemData + "', '" + placedBlock.getType() + "', " + placedBlock.getX() + ", " + placedBlock.getY() + ", " + placedBlock.getZ() + ", " + (int) placedBlock.getData() + ", '" + placedBlock.getBlockWorld().getName() + "');");
         } catch (SQLException ex) {
             Blueprint.error("Couldn't add block to player", ex);
         }
@@ -93,7 +97,6 @@ public class DataHandler {
                     + "' AND blockX = " + placedBlock.getX()
                     + " AND blockY = " + placedBlock.getY()
                     + " AND blockZ = " + placedBlock.getZ()
-                    + " AND blockMeta = " + (int) placedBlock.getData()
                     + " AND world = '" + world + "';");
         } catch (SQLException ex) {
             Blueprint.error("Couldn't activate player", ex);
@@ -226,40 +229,43 @@ public class DataHandler {
     }
 
     public static void activatePlayer(final String name, final String invData, final String armData) {
-        try {
-            if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
-                setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
+        activeUsers.put(name, true);
+        Bukkit.getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
+            public void run() {
+                try {
+                    if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
+                        setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
+                    }
+                    query("UPDATE players SET active = 1 WHERE playerID = '" + name + "';");
+                } catch (SQLException ex) {
+                    Blueprint.error("Couldn't activate player", ex);
+                }
+                setPlayerInventory(name, invData, armData);
             }
-            query("UPDATE players SET active = 1 WHERE playerID = '" + name + "';");
-        } catch (SQLException ex) {
-            Blueprint.error("Couldn't activate player", ex);
-        }
-        setPlayerInventory(name, invData, armData);
+        });
     }
 
     public static PlayerInventory deactivatePlayer(final String name) {
-        try {
-            if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
-                setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
-            }
-            query("UPDATE players SET active = 0 WHERE playerID = '" + name + "';");
-        } catch (SQLException ex) {
+        activeUsers.put(name, false);
+        Bukkit.getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
+            public void run() {
+                try {
+                    if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
+                        setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
+                    }
+                    query("UPDATE players SET active = 0 WHERE playerID = '" + name + "';");
+                } catch (SQLException ex) {
 
-            Blueprint.error("Couldn't deactivate player", ex);
+                    Blueprint.error("Couldn't deactivate player", ex);
+                }
+            }
         }
+        );
         return getAndDeserializeFullPlayerInventory(name);
     }
 
     public static boolean isPlayerActive(final String name) {
-        boolean result = false;
-
-        try {
-            result = Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "' AND active = 1;").get(0).getKey("Count")) != 0;
-        } catch (SQLException ex) {
-
-            Blueprint.error("Couldn't deactivate player", ex);
-        }
-        return result;
+        return activeUsers.get(name);
     }
 
     public static List<BlockData> getBlueprint(final String playerID, final String worldID) {
@@ -317,7 +323,7 @@ public class DataHandler {
         return new PlayerInventory(invPost, armPost);
     }
 
-    public static void updatePlayerBlock(final String name, final Block clickedBlock) {
+    public static void updatePlayerBlock(final String name, final BlockData clickedBlock) {
         try {
             if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
                 setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
@@ -325,6 +331,23 @@ public class DataHandler {
             query("UPDATE blocks SET blockMeta = " + (int) clickedBlock.getData() + "  WHERE"
                     + " playerID = '" + name
                     + "' AND blockID = '" + clickedBlock.getType()
+                    + "' AND blockX = " + clickedBlock.getX()
+                    + " AND blockY = " + clickedBlock.getY()
+                    + " AND blockZ = " + clickedBlock.getZ()
+                    + " AND world = '" + clickedBlock.getBlockWorld().getName() + "';");
+        } catch (SQLException ex) {
+            Blueprint.error("Couldn't activate player", ex);
+        }
+    }
+
+    public static void updatePlayerBlock(final String name, final Block clickedBlock) {
+        try {
+            if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
+                setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
+            }
+            query("UPDATE blocks SET blockMeta = " + (int) clickedBlock.getData() + "  WHERE"
+                    + " playerID = '" + name
+                    + "' AND blockID = '" + clickedBlock.getType().getId()
                     + "' AND blockX = " + clickedBlock.getX()
                     + " AND blockY = " + clickedBlock.getY()
                     + " AND blockZ = " + clickedBlock.getZ()
@@ -355,14 +378,15 @@ public class DataHandler {
                 case 0:
                     query("CREATE TABLE IF NOT EXISTS players (\n"
                             + " id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
-                            + " playerID TEXT NOT NULL,\n"
+                            + " playerID TEXT NOT NULL ,\n"
                             + " locX REAL NOT NULL DEFAULT 0,\n"
                             + " locY REAL NOT NULL DEFAULT 0,\n"
                             + " locZ REAL NOT NULL DEFAULT 0,\n"
                             + " gameMode INTEGER NOT NULL,\n"
                             + " inventory MEDIUMTEXT NOT NULL DEFAULT '',\n"
                             + " armour MEDIUMTEXT NOT NULL DEFAULT '',\n"
-                            + " active INTEGER NOT NULL DEFAULT 0);");
+                            + " active INTEGER NOT NULL DEFAULT 0,"
+                            + " CONSTRAINT Play UNIQUE(playerID));");
 
                     query("CREATE TABLE IF NOT EXISTS blocks (\n"
                             + " id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
@@ -374,7 +398,8 @@ public class DataHandler {
                             + " blockY INTEGER NOT NULL,\n"
                             + " blockZ INTEGER NOT NULL,\n"
                             + " blockMeta INTEGER NOT NULL,\n"
-                            + " world TEXT NOT NULL);");
+                            + " world TEXT NOT NULL, "
+                            + " CONSTRAINT CON UNIQUE(blockX, blockY, blockZ, world));");
 
                     query("CREATE TABLE IF NOT EXISTS chests (\n"
                             + " id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
@@ -382,7 +407,8 @@ public class DataHandler {
                             + " world TEXT NOT NULL,\n"
                             + " blockX INTEGER NOT NULL,\n"
                             + " blockY INTEGER NOT NULL,\n"
-                            + " blockZ INTEGER NOT NULL);");
+                            + " blockZ INTEGER NOT NULL, "
+                            + " CONSTRAINT CON UNIQUE(blockX, blockY, blockZ, world));");
                     break;
                 case 9:
                 default:
@@ -411,6 +437,7 @@ public class DataHandler {
                             + " blockZ INT NOT NULL,\n"
                             + " blockMeta INT NOT NULL,\n"
                             + " world VARCHAR(45) NOT NULL,\n"
+                            + " CONSTRAINT CON UNIQUE(blockX, blockY, blockZ, world),\n"
                             + " PRIMARY KEY (id));");
 
                     query("CREATE TABLE IF NOT EXISTS chests (\n"
@@ -420,6 +447,7 @@ public class DataHandler {
                             + " blockX INT NOT NULL,\n"
                             + " blockY INT NOT NULL,\n"
                             + " blockZ INT NOT NULL,\n"
+                            + " CONSTRAINT CON UNIQUE(blockX, blockY, blockZ, world),\n"
                             + " PRIMARY KEY (id));");
             }
         } catch (SQLException ex) {
@@ -699,6 +727,17 @@ public class DataHandler {
                     + " AND world = '" + world + "';");
         } catch (SQLException ex) {
             Blueprint.error("Couldn't activate player", ex);
+        }
+    }
+
+    public static void setupCache() {
+        try {
+            List<ResultData> result = query("SELECT playerID, active  FROM players;");
+            for (ResultData data : result) {
+                activeUsers.put(data.getKey("playerID"), data.getKey("active").equals("1"));
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(DataHandler.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 }

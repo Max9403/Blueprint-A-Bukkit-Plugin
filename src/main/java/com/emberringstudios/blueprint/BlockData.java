@@ -19,17 +19,17 @@ public class BlockData {
     private byte data;
     private World blockWorld;
 
+    @Override
+    public String toString() {
+        return "BlockData{" + "type=" + type + ", locX=" + locX + ", locY=" + locY + ", locZ=" + locZ + ", data=" + data + ", blockWorld=" + blockWorld + '}';
+    }
+
     public BlockData(final int blockType, final int locX, final int locY, final int locZ, final byte data) {
         this.type = blockType;
         this.locX = locX;
         this.locY = locY;
         this.locZ = locZ;
         this.data = data;
-    }
-
-    @Override
-    public String toString() {
-        return "BlockData{" + "type=" + type + ", locX=" + locX + ", locY=" + locY + ", locZ=" + locZ + ", data=" + data + ", blockWorld=" + blockWorld + '}';
     }
 
     public BlockData(final Material blockType, final int locX, final int locY, final int locZ, final byte data) {
@@ -46,6 +46,7 @@ public class BlockData {
         this.locY = blockData.getY();
         this.locZ = blockData.getZ();
         this.data = blockData.getData();
+        this.blockWorld = blockData.getWorld();
     }
 
     public BlockData(final int blockType, final int locX, final int locY, final int locZ, final byte data, final World blockWorld) {
@@ -63,15 +64,6 @@ public class BlockData {
         this.locY = locY;
         this.locZ = locZ;
         this.data = data;
-        this.blockWorld = blockWorld;
-    }
-
-    public BlockData(final Block blockData, final World blockWorld) {
-        this.type = blockData.getTypeId();
-        this.locX = blockData.getX();
-        this.locY = blockData.getY();
-        this.locZ = blockData.getZ();
-        this.data = blockData.getData();
         this.blockWorld = blockWorld;
     }
 
