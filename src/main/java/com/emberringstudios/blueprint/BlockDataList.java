@@ -7,6 +7,7 @@ package com.emberringstudios.blueprint;
 
 import java.util.Collection;
 import java.util.concurrent.CopyOnWriteArrayList;
+import org.bukkit.block.Block;
 
 /**
  *
@@ -89,8 +90,9 @@ public class BlockDataList<T extends BlockData> extends CopyOnWriteArrayList<T> 
 
     public void airAll(Collection<? extends T> collection) {
         for (T data : collection) {
-            data.setType(0);
-            add(data);
+            BlockData blockData = new BlockData(data);
+            blockData.setType(0);
+            add((T) blockData);
         }
     }
 }

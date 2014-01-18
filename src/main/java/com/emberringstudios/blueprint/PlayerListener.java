@@ -60,21 +60,16 @@ public class PlayerListener implements Listener {
                     return;
                 }
             }
-            final BlockData block = new BlockData(pbee.getBlockClicked().getRelative(pbee.getBlockFace()));
-
-            if (DataHandler.isBlueprintBlockAtLocation(pbee.getBlockClicked().getRelative(pbee.getBlockFace()).getLocation())) {
-                Bukkit.getServer().getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
-                    public void run() {
+            Bukkit.getScheduler().runTask(Blueprint.getPlugin(), new Runnable() {
+                public void run() {
+                    final BlockData block = new BlockData(pbee.getBlockClicked().getRelative(pbee.getBlockFace()));
+                    if (DataHandler.isBlueprintBlockAtLocation(pbee.getBlockClicked().getRelative(pbee.getBlockFace()).getLocation())) {
                         DataHandler.updatePlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? pbee.getPlayer().getUniqueId().toString() : pbee.getPlayer().getName(), block);
-                    }
-                });
-            } else {
-                Bukkit.getServer().getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
-                    public void run() {
+                    } else {
                         DataHandler.addPlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? pbee.getPlayer().getUniqueId().toString() : pbee.getPlayer().getName(), pbee.getBucket().getId(), 0, block);
                     }
-                });
-            }
+                }
+            });
         }
     }
 
@@ -82,11 +77,7 @@ public class PlayerListener implements Listener {
     public void onPhysicsEvent(final BlockPhysicsEvent bpe) {
         if (DataHandler.isBlueprintBlock(bpe.getBlock())) {
             if (bpe.getChangedTypeId() != 0) {
-                Bukkit.getServer().getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
-                    public void run() {
-                        DataHandler.updateBlock(bpe.getBlock());
-                    }
-                });
+                DataHandler.updateBlock(bpe.getBlock());
             }
             bpe.setCancelled(true);
         }
@@ -150,12 +141,7 @@ public class PlayerListener implements Listener {
                     pie.setCancelled(true);
                 }
                 if (DataHandler.checkPlayerBlockNoData(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName(), pie.getClickedBlock())) {
-
-                    Bukkit.getServer().getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
-                        public void run() {
-                            DataHandler.updatePlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName(), pie.getClickedBlock());
-                        }
-                    });
+                    DataHandler.updatePlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName(), pie.getClickedBlock());
                     if (player.hasMetadata("inMarkMode")) {
                         for (MetadataValue meta : player.getMetadata("inMarkMode")) {
                             if (meta.getOwningPlugin() == Blueprint.getPlugin()) {
@@ -249,11 +235,7 @@ public class PlayerListener implements Listener {
         if (DataHandler.isPlayerActive(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? bbe.getPlayer().getUniqueId().toString() : bbe.getPlayer().getName())) {
             if (DataHandler.checkPlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? bbe.getPlayer().getUniqueId().toString() : bbe.getPlayer().getName(), bbe.getBlock())) {
                 final BlockData block = new BlockData(bbe.getBlock());
-                Bukkit.getServer().getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
-                    public void run() {
-                        DataHandler.removePlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? bbe.getPlayer().getUniqueId().toString() : bbe.getPlayer().getName(), block, bbe.getPlayer().getWorld().getName());
-                    }
-                });
+                DataHandler.removePlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? bbe.getPlayer().getUniqueId().toString() : bbe.getPlayer().getName(), block, bbe.getPlayer().getWorld().getName());
             } else {
                 if (!ignoreList.contains(bbe.getBlock().getTypeId())) {
                     bbe.setCancelled(true);
@@ -287,12 +269,8 @@ public class PlayerListener implements Listener {
                     return;
                 }
             }
-            final BlockData block = new BlockData(bpe.getBlock());
-            Bukkit.getServer().getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
-                public void run() {
-                    DataHandler.addPlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? bpe.getPlayer().getUniqueId().toString() : bpe.getPlayer().getName(), bpe.getItemInHand(), block);
-                }
-            });
+            DataHandler.addPlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? bpe.getPlayer().getUniqueId().toString() : bpe.getPlayer().getName(), bpe.getItemInHand(), new BlockData(bpe.getBlock()));
+
             if (bpe.getBlockPlaced().getType() == Material.REDSTONE_TORCH_ON) {
                 bpe.getBlockPlaced().setType(Material.REDSTONE_TORCH_OFF);
             } else if (bpe.getBlockPlaced().getType() == Material.TNT) {

@@ -16,13 +16,13 @@ import org.bukkit.plugin.Plugin;
  * @author Max9403 <Max9403@live.com>
  */
 class BlueprintBuild implements Runnable {
-    
+
     private final Plugin plugin;
-    
+
     public BlueprintBuild(Plugin plugin) {
         this.plugin = plugin;
     }
-    
+
     public void run() {
         int maxBlocks = ConfigHandler.getDefaultBukkitConfig().getInt("limits.blocks at a time", 20);
         int placedBlocks = 0;

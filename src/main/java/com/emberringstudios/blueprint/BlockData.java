@@ -21,7 +21,7 @@ public class BlockData {
 
     @Override
     public String toString() {
-        return "BlockData{" + "type=" + type + ", locX=" + locX + ", locY=" + locY + ", locZ=" + locZ + ", data=" + data + ", blockWorld=" + blockWorld + '}';
+        return "BlockData{" + "type=" + type + ", locX=" + locX + ", locY=" + locY + ", locZ=" + locZ + ", data=" + data + ", blockWorld=" + blockWorld.getName() + '}';
     }
 
     public BlockData(final int blockType, final int locX, final int locY, final int locZ, final byte data) {
@@ -38,6 +38,14 @@ public class BlockData {
         this.locY = locY;
         this.locZ = locZ;
         this.data = data;
+    }
+    public BlockData(final BlockData blockData) {
+        this.type = blockData.getType();
+        this.locX = blockData.getX();
+        this.locY = blockData.getY();
+        this.locZ = blockData.getZ();
+        this.data = blockData.getData();
+        this.blockWorld = blockData.getBlockWorld();
     }
 
     public BlockData(final Block blockData) {
@@ -165,10 +173,14 @@ public class BlockData {
             throw new NoWorldGivenException("Developer forgot to set a world for this block");
         }
         Block modBlock = this.blockWorld.getBlockAt(locX, locY, locZ);
-        modBlock.setTypeIdAndData(type, data, true);
+        modBlock.setTypeIdAndData(type, data, false);
     }
 
     public boolean equalToBlock(Block tempBlock) {
-        return tempBlock.getTypeId() == type && tempBlock.getX() == locX && tempBlock.getY() == locY && tempBlock.getZ() == locZ && tempBlock.getData() == data;
+        return tempBlock.getTypeId() == type && tempBlock.getX() == locX && tempBlock.getY() == locY && tempBlock.getZ() == locZ && tempBlock.getData() == data && tempBlock.getWorld() == blockWorld;
+    }
+
+    public String convertToKey() {
+        return locX + "" + locY + "" + locZ + blockWorld.getName();
     }
 }

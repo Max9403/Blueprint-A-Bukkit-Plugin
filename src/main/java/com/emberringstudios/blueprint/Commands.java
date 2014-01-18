@@ -1,5 +1,6 @@
 package com.emberringstudios.blueprint;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import org.bukkit.ChatColor;
@@ -87,10 +88,7 @@ public class Commands {
                     player.setGameMode(DataHandler.getOriginalPlayerGameMode(playerId));
                     player.sendMessage("You are no longer in blueprint mode, just gona deconstruct it");
                 } else {
-                    if (!DataHandler.setOriginalPlayerGameMode(playerId, player.getGameMode())) {
-                        sender.sendMessage("Something went wrong, we'll send the goblins to fix it");
-                        return true;
-                    }
+                    DataHandler.setOriginalPlayerGameMode(playerId, player.getGameMode());
                     List<Location> playerChestLocations = DataHandler.getPlayerChestLocations(playerId);
 
                     boolean resCheck = false;
