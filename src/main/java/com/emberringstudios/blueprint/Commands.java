@@ -89,13 +89,13 @@ public class Commands {
                     player.sendMessage("You are no longer in blueprint mode, just gona deconstruct it");
                 } else {
                     DataHandler.setOriginalPlayerGameMode(playerId, player.getGameMode());
-                    List<Location> playerChestLocations = DataHandler.getPlayerChestLocations(playerId);
+                    List<BlockData> playerChestLocations = DataHandler.getPlayerChestLocations(playerId);
 
                     boolean resCheck = false;
-                    for (Location loc : playerChestLocations) {
+                    for (BlockData loc : playerChestLocations) {
                         Inventory inv;
-                        if (loc.getBlock().getState() instanceof InventoryHolder) {
-                            inv = ((InventoryHolder) loc.getBlock().getState()).getInventory();
+                        if (loc.getLocation().getBlock().getState() instanceof InventoryHolder) {
+                            inv = ((InventoryHolder) loc.getLocation().getBlock().getState()).getInventory();
                             for (ItemStack check : inv.getContents()) {
                                 if (check != null) {
                                     resCheck = true;

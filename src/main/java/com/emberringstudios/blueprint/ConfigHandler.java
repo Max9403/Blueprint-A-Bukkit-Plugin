@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import lib.PatPeter.SQLibrary.DB2;
 import lib.PatPeter.SQLibrary.Database;
@@ -103,6 +104,7 @@ public class ConfigHandler {
                     break;
             }
             DataHandler.setDatabaseType(localConfig.getInt("database.type", 0));
+            theDataHub.open();
         }
         return theDataHub;
     }

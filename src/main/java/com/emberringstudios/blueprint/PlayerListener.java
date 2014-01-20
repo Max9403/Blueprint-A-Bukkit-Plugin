@@ -6,6 +6,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event.Result;
 import org.bukkit.event.EventHandler;
@@ -244,6 +245,11 @@ public class PlayerListener implements Listener {
         } else {
             if (DataHandler.isBlueprintBlock(bbe.getBlock())) {
                 bbe.setCancelled(true);
+            }
+        }
+        if (bbe.getBlock().getTypeId() == 54) {
+            if (DataHandler.isPlayerChest(bbe.getBlock()) || DataHandler.isPlayerChest(bbe.getBlock().getRelative(BlockFace.NORTH)) || DataHandler.isPlayerChest(bbe.getBlock().getRelative(BlockFace.EAST)) || DataHandler.isPlayerChest(bbe.getBlock().getRelative(BlockFace.WEST)) || DataHandler.isPlayerChest(bbe.getBlock().getRelative(BlockFace.EAST)) || DataHandler.isPlayerChest(bbe.getBlock().getRelative(BlockFace.SOUTH))) {
+                DataHandler.removePlayerChest(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? bbe.getPlayer().getUniqueId().toString() : bbe.getPlayer().getName(), bbe.getBlock());
             }
         }
     }

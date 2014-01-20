@@ -2,6 +2,7 @@ package com.emberringstudios.blueprint;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -39,6 +40,7 @@ public class BlockData {
         this.locZ = locZ;
         this.data = data;
     }
+
     public BlockData(final BlockData blockData) {
         this.type = blockData.getType();
         this.locX = blockData.getX();
@@ -129,6 +131,10 @@ public class BlockData {
      */
     public void setZ(int locZ) {
         this.locZ = locZ;
+    }
+
+    public Location getLocation() {
+        return new Location(blockWorld, locX, locY, locZ);
     }
 
     /**

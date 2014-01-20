@@ -32,14 +32,14 @@ class BlueprintBuild implements Runnable {
 //        }
 
         for (String name : DataHandler.getPlayerIds()) {
-            for (Location loc : DataHandler.getPlayerChestLocations(name)) {
+            for (BlockData loc : DataHandler.getPlayerChestLocations(name)) {
                 Inventory inv;
-                if (loc.getBlock().getState() instanceof InventoryHolder) {
-                    inv = ((InventoryHolder) loc.getBlock().getState()).getInventory();
+                if (loc.getLocation().getBlock().getState() instanceof InventoryHolder) {
+                    inv = ((InventoryHolder) loc.getLocation().getBlock().getState()).getInventory();
                 } else {
                     continue;
                 }
-                List<ItemStack> blueprint = DataHandler.getBlueprintItemTypes(name, loc.getBlock().getWorld().getName());
+                List<ItemStack> blueprint = DataHandler.getBlueprintItemTypes(name, loc.getLocation().getBlock().getWorld().getName());
                 for (ItemStack mat : blueprint) {
                     if (inv.contains(mat.getTypeId())) {
                         HashMap<Integer, ? extends ItemStack> all = inv.all(mat.getTypeId());
@@ -49,9 +49,9 @@ class BlueprintBuild implements Runnable {
                             ItemStack temp = (ItemStack) pairs.getValue();
                             if (temp.getData().getData() == mat.getData().getData()) {
                                 int inChest = temp.getAmount();
-                                int needed = DataHandler.getBlueprintBlockOfTypInWorldNeededFromItem(name, mat, loc.getBlock().getWorld().getName());
+                                int needed = DataHandler.getBlueprintBlockOfTypInWorldNeededFromItem(name, mat,loc.getLocation().getBlock().getWorld().getName());
                                 int remaining = (needed - inChest) > 0 ? needed - inChest : 0;
-                                List<BlockData> blocks = DataHandler.getBlueprintBuildBlockOfTypInWorldFromItem(name, mat, loc.getBlock().getWorld().getName());
+                                List<BlockData> blocks = DataHandler.getBlueprintBuildBlockOfTypInWorldFromItem(name, mat, loc.getLocation().getBlock().getWorld().getName());
                                 for (int counter = 0; counter < needed - remaining; counter++) {
                                     if (placedBlocks >= maxBlocks) {
                                         return;
@@ -61,15 +61,15 @@ class BlueprintBuild implements Runnable {
                                     } else {
                                         inv.remove(temp);
                                     }
-                                    loc.getBlock().getState().update(true);
-                                    DataHandler.removePlayerBlock(name, blocks.get(counter), loc.getBlock().getWorld().getName());
+                                    loc.getLocation().getBlock().getState().update(true);
+                                    DataHandler.removePlayerBlock(name, blocks.get(counter), loc.getLocation().getBlock().getWorld().getName());
                                     if (blocks.get(counter).getType() == Material.REDSTONE_TORCH_ON.getId()) {
                                         blocks.get(counter).setType(Material.REDSTONE_TORCH_OFF.getId());
                                     }
                                     try {
                                         blocks.get(counter).loadBlockIntoWorld();
                                     } catch (NoWorldGivenException ex) {
-                                        blocks.get(counter).loadBlockIntoWorld(loc.getBlock().getWorld());
+                                        blocks.get(counter).loadBlockIntoWorld(loc.getLocation().getBlock().getWorld());
                                     }
                                     placedBlocks++;
                                 }

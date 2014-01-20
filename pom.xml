@@ -36,11 +36,6 @@
             <name>Dakani Nexus Repo</name>
             <url>http://repo.dakanilabs.com/content/repositories/public</url>
         </repository>
-        <repository>
-            <id>comphenix-rep</id>
-            <name>Comphenix Repository</name>
-            <url>http://repo.comphenix.net/content/groups/public</url>
-        </repository>
     </repositories>
 
     <dependencies>
@@ -58,12 +53,7 @@
         <dependency>
             <groupId>lib.PatPeter.SQLibrary</groupId>
             <artifactId>SQLibrary</artifactId>
-            <version>6.1</version>
-        </dependency>
-        <dependency>
-            <groupId>com.comphenix.protocol</groupId>
-            <artifactId>ProtocolLib</artifactId>
-            <version>3.0.1</version>
+            <version>7.1</version>
         </dependency>
     </dependencies>
 </project>

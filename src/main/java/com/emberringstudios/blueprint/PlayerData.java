@@ -19,6 +19,7 @@ public class PlayerData {
     private String armour;
     private boolean active;
     private ConcurrentHashMap<String, BlockDataCache> playerBlocks = new ConcurrentHashMap();
+    private ConcurrentHashMap<String, BlockDataChest> playerChests = new ConcurrentHashMap();
     private double locX;
     private double locY;
     private double locZ;
@@ -36,6 +37,13 @@ public class PlayerData {
         this.inv = inv;
         this.armour = armour;
         this.active = active;
+    }
+
+    /**
+     * @return the playerChests
+     */
+    public ConcurrentHashMap<String, BlockDataChest> getPlayerChests() {
+        return playerChests;
     }
 
     /**
@@ -159,5 +167,12 @@ public class PlayerData {
      */
     public void setLocZ(double locZ) {
         this.locZ = locZ;
+    }
+
+    /**
+     * @param playerChests the playerChests to set
+     */
+    public void setPlayerChests(ConcurrentHashMap<String, BlockDataChest> playerChests) {
+        this.playerChests = playerChests;
     }
 }

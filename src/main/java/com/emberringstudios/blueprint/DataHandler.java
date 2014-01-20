@@ -11,7 +11,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import lib.PatPeter.SQLibrary.Database;
-import lib.PatPeter.SQLibrary.SQLite;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -40,6 +39,7 @@ public class DataHandler {
     public static final int PostgreSQL = 13;
     private static volatile ConcurrentHashMap<String, PlayerData> activeUsers = new ConcurrentHashMap();
     private static volatile ConcurrentHashMap<String, BlockDataCache> blocks = new ConcurrentHashMap();
+    private static volatile ConcurrentHashMap<String, BlockDataChest> chests = new ConcurrentHashMap();
 
     public static int getDatabaseType() {
         return databaseType;
@@ -327,45 +327,66 @@ public class DataHandler {
         });
     }
 
-    public static boolean addPlayerChest(final String name, final Block placedBlock) {
-        try {
-            if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
-                setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
-            }
-            if (!isPlayerChest(placedBlock)) {
-                query("INSERT INTO chests (playerID, blockX, blockY, blockZ, world) VALUES ('" + name + "', " + placedBlock.getX() + ", " + placedBlock.getY() + ", " + placedBlock.getZ() + ", '" + placedBlock.getWorld().getName() + "');");
-                return true;
-            }
-        } catch (SQLException ex) {
-            Blueprint.error("Couldn't activate player", ex);
+    public static void addPlayerChest(final String name, final Block placedBlcok) {
+        final BlockDataChest bdc = new BlockDataChest(placedBlcok, name);
+        if (!isPlayerChest(bdc)) {
+            chests.put(bdc.convertToKey(), bdc);
+            activeUsers.get(name).getPlayerChests().put(bdc.convertToKey(), bdc);
+            Bukkit.getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
+                public void run() {
+                    try {
+                        if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
+                            setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
+                        }
+                        query("INSERT INTO chests (playerID, blockX, blockY, blockZ, world) VALUES ('" + name + "', " + bdc.getX() + ", " + bdc.getY() + ", " + bdc.getZ() + ", '" + bdc.getBlockWorld().getName() + "');");
+
+                    } catch (SQLException ex) {
+                        Blueprint.error("Couldn't activate player", ex);
+                    }
+                }
+            });
         }
-        return false;
+    }
+
+    public static void removePlayerChest(final String name, final Block placedBlock) {
+        final BlockDataChest bdc = new BlockDataChest(placedBlock, name);
+
+        if (isPlayerChest(bdc)) {
+            if (chests.get(bdc.convertToKey()) != null && chests.get(bdc.convertToKey()).getOwner().equalsIgnoreCase(name)) {
+                chests.remove(bdc.convertToKey());
+                activeUsers.get(name).getPlayerChests().remove(bdc.convertToKey());
+            } else {
+                return;
+            }
+            Bukkit.getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
+                public void run() {
+                    try {
+                        if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
+                            setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
+                        }
+                        query("DELETE FROM chests WHERE playerID = '" + name + "' AND blockX = " + bdc.getX() + " AND blockY = " + bdc.getY() + " AND blockZ  = " + bdc.getZ() + " AND world = '" + bdc.getBlockWorld().getName() + "';");
+                    } catch (SQLException ex) {
+                        Blueprint.error("Couldn't activate player", ex);
+                    }
+                }
+            });
+        }
     }
 
     public static boolean isPlayerChest(Block placedBlock) {
-        try {
-            return Integer.parseInt(query("SELECT COUNT(*) AS Count FROM chests WHERE blockX = " + placedBlock.getX() + " AND blockY = " + placedBlock.getY() + " AND blockZ  = " + placedBlock.getX() + ";").get(0).getKey("Count")) > 0;
-        } catch (SQLException ex) {
-            Blueprint.error("Couldn't activate player", ex);
-        }
-        return false;
+        return chests.get(new BlockData(placedBlock).convertToKey()) != null;
+    }
+
+    public static boolean isPlayerChest(BlockData placedBlock) {
+        return chests.get(placedBlock.convertToKey()) != null;
+    }
+
+    public static List<BlockData> getPlayerChestLocations(final String name) {
+        return new ArrayList(chests.values());
     }
 
     public static List<String> getPlayerIds() {
         return new ArrayList(activeUsers.keySet());
-    }
-
-    public static List<Location> getPlayerChestLocations(final String name) {
-        List<Location> locations = new CopyOnWriteArrayList();
-        try {
-            List<ResultData> query = query("SELECT world, blockX, blockY, blockZ FROM chests WHERE playerID = '" + name + "';");
-            for (ResultData data : query) {
-                locations.add(new Location(Blueprint.getPlugin().getServer().getWorld(data.getKey("world")), Double.parseDouble(data.getKey("blockX")), Double.parseDouble(data.getKey("blockY")), Double.parseDouble(data.getKey("blockZ"))));
-            }
-        } catch (SQLException ex) {
-            Blueprint.error("Couldn't activate player", ex);
-        }
-        return locations;
     }
 
     public static List<BlockData> getBlueprintAllWorlds(final String playerID) {
@@ -543,6 +564,12 @@ public class DataHandler {
                                 Integer.parseInt(data.getKey("itemMeta"))
                         ));
             }
+            result = query("SELECT playerID, world, blockX, blockY, blockZ  FROM chests;");
+            for (ResultData data : result) {
+                BlockDataChest bdc = new BlockDataChest(54, Integer.parseInt(data.getKey("blockX")), Integer.parseInt(data.getKey("blockY")), Integer.parseInt(data.getKey("blockZ")), (byte) 0, Bukkit.getWorld(data.getKey("world")), data.getKey("playerID"));
+                activeUsers.get(data.getKey("playerID")).getPlayerChests().put(bdc.convertToKey(), bdc);
+                chests.put(bdc.convertToKey(), bdc);
+            }
         } catch (SQLException ex) {
             Logger.getLogger(DataHandler.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -635,8 +662,10 @@ public class DataHandler {
         List<ResultData> data = new CopyOnWriteArrayList();
         synchronized (ConfigHandler.getTheDataHub()) {
             final Database tempDB = ConfigHandler.getTheDataHub();
-            if (tempDB instanceof SQLite ? !tempDB.open() : !tempDB.isOpen() && !tempDB.open()) {
-                Blueprint.error("Could not work with database");
+            if (tempDB.getConnection().isClosed()) {
+                if (!tempDB.open()) {
+                    Blueprint.error("Could not work with database");
+                }
             }
             try {
                 ResultSet result = tempDB.query(query);
@@ -656,7 +685,6 @@ public class DataHandler {
             } catch (SQLException ex) {
                 throw ex;
             }
-            tempDB.close();
         }
         return data;
     }
