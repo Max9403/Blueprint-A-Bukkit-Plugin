@@ -10,6 +10,11 @@ public class PlayerInventory {
     private final ItemStack[] items;
     private final ItemStack[] armour;
     
+    /**
+     *
+     * @param items
+     * @param armour
+     */
     public PlayerInventory(final ItemStack[] items, final ItemStack[] armour){
         this.items = items;
         this.armour = armour;

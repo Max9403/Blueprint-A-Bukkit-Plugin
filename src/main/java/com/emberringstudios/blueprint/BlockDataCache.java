@@ -19,6 +19,18 @@ public class BlockDataCache extends BlockData {
     private int itemID;
     private int itemMeta;
 
+    /**
+     *
+     * @param blockType
+     * @param locX
+     * @param locY
+     * @param locZ
+     * @param data
+     * @param world
+     * @param playerID
+     * @param itemID
+     * @param itemMeta
+     */
     public BlockDataCache(int blockType, int locX, int locY, int locZ, byte data, World world, String playerID, int itemID, int itemMeta) {
         super(blockType, locX, locY, locZ, data, world);
         this.playerID = playerID;
@@ -26,6 +38,13 @@ public class BlockDataCache extends BlockData {
         this.itemMeta = itemMeta;
     }
 
+    /**
+     *
+     * @param blockData
+     * @param playerID
+     * @param itemID
+     * @param itemMeta
+     */
     public BlockDataCache(final Block blockData, String playerID, int itemID, int itemMeta) {
         super(blockData);
         this.playerID = playerID;
@@ -33,6 +52,13 @@ public class BlockDataCache extends BlockData {
         this.itemMeta = itemMeta;
     }
 
+    /**
+     *
+     * @param blockData
+     * @param playerID
+     * @param itemID
+     * @param itemMeta
+     */
     public BlockDataCache(final BlockData blockData, String playerID, int itemID, int itemMeta) {
         super(blockData.getType(), blockData.getX(), blockData.getY(), blockData.getZ(), blockData.getData(), blockData.getBlockWorld());
         this.playerID = playerID;
@@ -61,6 +87,10 @@ public class BlockDataCache extends BlockData {
         return itemMeta;
     }
 
+    /**
+     *
+     * @return
+     */
     public ItemStack getItemStack() {
         ItemStack temp = new ItemStack(itemID);
         temp.getData().setData((byte) itemMeta);

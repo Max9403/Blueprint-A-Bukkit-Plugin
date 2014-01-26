@@ -20,39 +20,120 @@ import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.inventory.ItemStack;
 import org.yaml.snakeyaml.Yaml;
 
+/**
+ *
+ * @author Benjamin
+ */
 public class DataHandler {
 
     private static int databaseType;
+
+    /**
+     *
+     */
     public static final int SQLite = 0;
+
+    /**
+     *
+     */
     public static final int Firebird = 1;
+
+    /**
+     *
+     */
     public static final int DB2 = 2;
+
+    /**
+     *
+     */
     public static final int FrontBase = 3;
+
+    /**
+     *
+     */
     public static final int H2 = 4;
+
+    /**
+     *
+     */
     public static final int Informix = 5;
+
+    /**
+     *
+     */
     public static final int Ingres = 6;
+
+    /**
+     *
+     */
     public static final int MaxDB = 7;
+
+    /**
+     *
+     */
     public static final int MicrosoftSQL = 8;
+
+    /**
+     *
+     */
     public static final int MySQL = 9;
+
+    /**
+     *
+     */
     public static final int Mongo = 10;
+
+    /**
+     *
+     */
     public static final int mSQL = 11;
+
+    /**
+     *
+     */
     public static final int Oracle = 12;
+
+    /**
+     *
+     */
     public static final int PostgreSQL = 13;
     private static volatile ConcurrentHashMap<String, PlayerData> activeUsers = new ConcurrentHashMap();
     private static volatile ConcurrentHashMap<String, BlockDataCache> blocks = new ConcurrentHashMap();
     private static volatile ConcurrentHashMap<String, BlockDataChest> chests = new ConcurrentHashMap();
 
+    /**
+     *
+     * @return
+     */
     public static int getDatabaseType() {
         return databaseType;
     }
 
+    /**
+     *
+     * @param aDatabaseType
+     */
     public static void setDatabaseType(final int aDatabaseType) {
         databaseType = aDatabaseType;
     }
 
+    /**
+     *
+     * @param name
+     * @param item
+     * @param placedBlock
+     */
     public static void addPlayerBlock(final String name, final ItemStack item, final BlockData placedBlock) {
         addPlayerBlock(name, item.getTypeId(), item.getData().getData(), placedBlock);
     }
 
+    /**
+     *
+     * @param name
+     * @param itemID
+     * @param itemData
+     * @param placedBlock
+     */
     public static void addPlayerBlock(final String name, final int itemID, final int itemData, final BlockData placedBlock) {
         blocks.put(placedBlock.convertToKey(), new BlockDataCache(placedBlock, name, itemID, (byte) itemData));
         activeUsers.get(name).getPlayerBlocks().put(placedBlock.convertToKey(), new BlockDataCache(placedBlock, name, itemID, (byte) itemData));
@@ -70,6 +151,12 @@ public class DataHandler {
         });
     }
 
+    /**
+     *
+     * @param name
+     * @param placedBlock
+     * @param world
+     */
     public static void removePlayerBlock(final String name, final BlockData placedBlock, final String world) {
         blocks.remove(placedBlock.convertToKey());
         activeUsers.get(name).getPlayerBlocks().remove(placedBlock.convertToKey());
@@ -93,9 +180,16 @@ public class DataHandler {
         });
     }
 
+    /**
+     *
+     * @param name
+     * @param placedBlock
+     * @param world
+     */
     public static void removePlayerBlock(final String name, final Block placedBlock, final String world) {
-        blocks.remove(new BlockData(placedBlock).convertToKey());
-        activeUsers.get(name).getPlayerBlocks().remove(new BlockData(placedBlock).convertToKey());
+        final BlockData bd = new BlockData(placedBlock);
+        blocks.remove(bd.convertToKey());
+        activeUsers.get(name).getPlayerBlocks().remove(bd.convertToKey());
         Bukkit.getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
             public void run() {
                 try {
@@ -103,10 +197,10 @@ public class DataHandler {
                         setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
                     }
                     query("DELETE FROM blocks WHERE playerID = '" + name
-                            + "' AND blockID = '" + placedBlock.getType().getId()
-                            + "' AND blockX = " + placedBlock.getX()
-                            + " AND blockY = " + placedBlock.getY()
-                            + " AND blockZ = " + placedBlock.getZ()
+                            + "' AND blockID = '" + bd.getType()
+                            + "' AND blockX = " + bd.getX()
+                            + " AND blockY = " + bd.getY()
+                            + " AND blockZ = " + bd.getZ()
                             + " AND world = '" + world + "';");
                 } catch (SQLException ex) {
                     Blueprint.error("Couldn't activate player", ex);
@@ -115,6 +209,12 @@ public class DataHandler {
         });
     }
 
+    /**
+     *
+     * @param name
+     * @param placedBlock
+     * @return
+     */
     public static boolean checkPlayerBlock(final String name, final Block placedBlock) {
         BlockDataCache get = blocks.get(new BlockData(placedBlock).convertToKey());
         if (get != null) {
@@ -124,6 +224,15 @@ public class DataHandler {
         }
     }
 
+    /**
+     *
+     * @param name
+     * @param locX
+     * @param locY
+     * @param locZ
+     * @param worldID
+     * @return
+     */
     public static boolean checkPlayerBlockNoData(final String name, final int locX, final int locY, final int locZ, final String worldID) {
         BlockDataCache get = blocks.get(locX + "" + locY + "" + locZ + worldID);
         if (get != null) {
@@ -133,6 +242,12 @@ public class DataHandler {
         }
     }
 
+    /**
+     *
+     * @param name
+     * @param placedBlock
+     * @return
+     */
     public static boolean checkPlayerBlockNoData(final String name, final Block placedBlock) {
         BlockDataCache get = blocks.get(new BlockData(placedBlock).convertToKey());
         if (get != null) {
@@ -142,10 +257,20 @@ public class DataHandler {
         }
     }
 
+    /**
+     *
+     * @param name
+     * @return
+     */
     public static GameMode getOriginalPlayerGameMode(final String name) {
-        return activeUsers.get(name).getGameMode() == 0 ? GameMode.CREATIVE : GameMode.ADVENTURE;
+        return activeUsers.get(name).getGameMode() == 0 ? GameMode.SURVIVAL : GameMode.ADVENTURE;
     }
 
+    /**
+     *
+     * @param name
+     * @param originalGameMode
+     */
     public static void setOriginalPlayerGameMode(final String name, final GameMode originalGameMode) {
         final int gameMode = originalGameMode == GameMode.ADVENTURE ? 1 : 0;
         if (activeUsers.get(name) == null) {
@@ -167,10 +292,22 @@ public class DataHandler {
         });
     }
 
+    /**
+     *
+     * @param name
+     * @param place
+     */
     public static void setPlayerLocation(final String name, final Location place) {
         setPlayerLocation(name, place.getX(), place.getY(), place.getZ());
     }
 
+    /**
+     *
+     * @param name
+     * @param locX
+     * @param locY
+     * @param locZ
+     */
     public static void setPlayerLocation(final String name, final double locX, final double locY, final double locZ) {
         activeUsers.get(name).setLocX(locX);
         activeUsers.get(name).setLocY(locY);
@@ -191,10 +328,21 @@ public class DataHandler {
         });
     }
 
+    /**
+     *
+     * @param name
+     * @return
+     */
     public static BasicLocation getPlayerLocation(final String name) {
         return activeUsers.get(name).getLocation();
     }
 
+    /**
+     *
+     * @param name
+     * @param invData
+     * @param armData
+     */
     public static void activatePlayer(final String name, final String invData, final String armData) {
         activeUsers.get(name).setActive(true);
         Bukkit.getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
@@ -212,6 +360,11 @@ public class DataHandler {
         });
     }
 
+    /**
+     *
+     * @param name
+     * @return
+     */
     public static PlayerInventory deactivatePlayer(final String name) {
         activeUsers.get(name).setActive(false);
         Bukkit.getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
@@ -231,10 +384,21 @@ public class DataHandler {
         return getAndDeserializeFullPlayerInventory(name);
     }
 
+    /**
+     *
+     * @param name
+     * @return
+     */
     public static boolean isPlayerActive(final String name) {
         return activeUsers.get(name) == null ? false : activeUsers.get(name).isActive();
     }
 
+    /**
+     *
+     * @param playerID
+     * @param worldID
+     * @return
+     */
     public static List<BlockData> getBlueprint(final String playerID, final String worldID) {
         List<BlockData> blockList = new CopyOnWriteArrayList();
         for (BlockData data : activeUsers.get(playerID).getPlayerBlocks().values()) {
@@ -245,6 +409,12 @@ public class DataHandler {
         return blockList;
     }
 
+    /**
+     *
+     * @param playerId
+     * @param inv
+     * @param arm
+     */
     public static void setPlayerInventory(final String playerId, final String inv, final String arm) {
         activeUsers.get(playerId).setArmour(arm);
         activeUsers.get(playerId).setInventory(inv);
@@ -260,14 +430,29 @@ public class DataHandler {
 
     }
 
+    /**
+     *
+     * @param playerId
+     * @return
+     */
     public static String getPlayerInventory(String playerId) {
         return activeUsers.get(playerId).getInventory();
     }
 
+    /**
+     *
+     * @param playerId
+     * @return
+     */
     public static String getPlayerArmour(String playerId) {
         return activeUsers.get(playerId).getArmour();
     }
 
+    /**
+     *
+     * @param playerId
+     * @return
+     */
     public static PlayerInventory getAndDeserializeFullPlayerInventory(final String playerId) {
         String inv = getPlayerInventory(playerId);
         String arm = getPlayerArmour(playerId);
@@ -281,6 +466,11 @@ public class DataHandler {
         return new PlayerInventory(invPost, armPost);
     }
 
+    /**
+     *
+     * @param name
+     * @param clickedBlock
+     */
     public static void updatePlayerBlock(final String name, final BlockData clickedBlock) {
         final BlockDataCache bdc = blocks.get(clickedBlock.convertToKey());
         bdc.setData(clickedBlock.getData());
@@ -304,6 +494,11 @@ public class DataHandler {
         });
     }
 
+    /**
+     *
+     * @param name
+     * @param clickedBlock
+     */
     public static void updatePlayerBlock(final String name, final Block clickedBlock) {
         final BlockDataCache bdc = blocks.get(new BlockData(clickedBlock).convertToKey());
         bdc.setData(clickedBlock.getData());
@@ -327,6 +522,11 @@ public class DataHandler {
         });
     }
 
+    /**
+     *
+     * @param name
+     * @param placedBlcok
+     */
     public static void addPlayerChest(final String name, final Block placedBlcok) {
         final BlockDataChest bdc = new BlockDataChest(placedBlcok, name);
         if (!isPlayerChest(bdc)) {
@@ -348,6 +548,11 @@ public class DataHandler {
         }
     }
 
+    /**
+     *
+     * @param name
+     * @param placedBlock
+     */
     public static void removePlayerChest(final String name, final Block placedBlock) {
         final BlockDataChest bdc = new BlockDataChest(placedBlock, name);
 
@@ -373,26 +578,56 @@ public class DataHandler {
         }
     }
 
+    /**
+     *
+     * @param placedBlock
+     * @return
+     */
     public static boolean isPlayerChest(Block placedBlock) {
         return chests.get(new BlockData(placedBlock).convertToKey()) != null;
     }
 
+    /**
+     *
+     * @param placedBlock
+     * @return
+     */
     public static boolean isPlayerChest(BlockData placedBlock) {
         return chests.get(placedBlock.convertToKey()) != null;
     }
 
+    /**
+     *
+     * @param name
+     * @return
+     */
     public static List<BlockData> getPlayerChestLocations(final String name) {
         return new ArrayList(chests.values());
     }
 
+    /**
+     *
+     * @return
+     */
     public static List<String> getPlayerIds() {
         return new ArrayList(activeUsers.keySet());
     }
 
+    /**
+     *
+     * @param playerID
+     * @return
+     */
     public static List<BlockData> getBlueprintAllWorlds(final String playerID) {
         return new ArrayList(activeUsers.get(playerID).getPlayerBlocks().values());
     }
 
+    /**
+     *
+     * @param playerID
+     * @param worldID
+     * @return
+     */
     public static List<Integer> getBlueprintBlockTypes(final String playerID, final String worldID) {
         List<Integer> blockList = new CopyOnWriteArrayList();
         for (BlockData data : activeUsers.get(playerID).getPlayerBlocks().values()) {
@@ -403,6 +638,13 @@ public class DataHandler {
         return blockList;
     }
 
+    /**
+     *
+     * @param playerID
+     * @param mat
+     * @param worldID
+     * @return
+     */
     public static int getBlueprintBlockOfTypInWorldNeeded(String playerID, int mat, String worldID) {
         int count = 0;
         for (BlockData data : activeUsers.get(playerID).getPlayerBlocks().values()) {
@@ -413,6 +655,13 @@ public class DataHandler {
         return count;
     }
 
+    /**
+     *
+     * @param playerID
+     * @param mat
+     * @param worldID
+     * @return
+     */
     public static List<BlockData> getBlueprintBuildBlockOfTypInWorld(String playerID, int mat, String worldID) {
         List<BlockData> blockList = new CopyOnWriteArrayList();
         for (BlockData data : activeUsers.get(playerID).getPlayerBlocks().values()) {
@@ -423,18 +672,44 @@ public class DataHandler {
         return blockList;
     }
 
+    /**
+     *
+     * @param blockType
+     * @param placedBlock
+     * @return
+     */
     public static boolean isBlueprintBlock(final Material blockType, final Location placedBlock) {
         return isBlueprintBlock(blockType.getId(), placedBlock);
     }
 
+    /**
+     *
+     * @param blockTypeID
+     * @param placedBlock
+     * @return
+     */
     public static boolean isBlueprintBlock(final int blockTypeID, final Location placedBlock) {
         return isBlueprintBlock(blockTypeID, (int) (placedBlock.getX() + 0.5D), (int) (placedBlock.getY() + 0.5D), (int) (placedBlock.getZ() + 0.5D), placedBlock.getWorld().getName());
     }
 
+    /**
+     *
+     * @param placedBlock
+     * @return
+     */
     public static boolean isBlueprintBlock(final Block placedBlock) {
         return isBlueprintBlock(placedBlock.getType().getId(), placedBlock.getX(), placedBlock.getY(), placedBlock.getZ(), placedBlock.getWorld().getName());
     }
 
+    /**
+     *
+     * @param blockTypeID
+     * @param locX
+     * @param locY
+     * @param locZ
+     * @param worldID
+     * @return
+     */
     public static boolean isBlueprintBlock(int blockTypeID, final int locX, final int locY, final int locZ, final String worldID) {
         BlockDataCache get = blocks.get(locX + "" + locY + "" + locZ + worldID);
         if (get != null) {
@@ -444,6 +719,10 @@ public class DataHandler {
         }
     }
 
+    /**
+     *
+     * @param clickedBlock
+     */
     public static void updateBlock(final Block clickedBlock) {
         final BlockDataCache bdc = blocks.get(new BlockData(clickedBlock).convertToKey());
         bdc.setData(clickedBlock.getData());
@@ -463,38 +742,102 @@ public class DataHandler {
         });
     }
 
+    /**
+     *
+     * @param location
+     * @return
+     */
     public static boolean isBlueprintBlockAtLocation(final Location location) {
         return isBlueprintBlockAtLocation(location.getBlockX(), location.getBlockY(), location.getBlockZ(), location.getWorld().getName());
     }
 
+    /**
+     *
+     * @param locX
+     * @param locY
+     * @param locZ
+     * @param worldID
+     * @return
+     */
     public static boolean isBlueprintBlockAtLocation(final int locX, final int locY, final int locZ, final String worldID) {
         return blocks.get(locX + "" + locY + "" + locZ + worldID) != null;
     }
 
-    public static List<ItemStack> getBlueprintItemTypes(final String playerID, final String worldID) {
+    /**
+     *
+     * @param playerID
+     * @return
+     */
+    public static List<ItemStack> getBlueprintItemTypes(final String playerID) {
         List<ItemStack> blockList = new CopyOnWriteArrayList();
-        for (BlockDataCache data : activeUsers.get(playerID).getPlayerBlocks().values()) {
-            blockList.add(data.getItemStack());
+        if (activeUsers.get(playerID) != null) {
+            for (BlockDataCache data : activeUsers.get(playerID).getPlayerBlocks().values()) {
+                blockList.add(data.getItemStack());
+            }
         }
         return blockList;
     }
 
+    /**
+     *
+     * @param playerID
+     * @param worldID
+     * @return
+     */
+    public static List<ItemStack> getBlueprintItemTypes(final String playerID, final String worldID) {
+        List<ItemStack> blockList = new CopyOnWriteArrayList();
+        for (BlockDataCache data : activeUsers.get(playerID).getPlayerBlocks().values()) {
+            if (data.getBlockWorld().getName().equals(worldID)) {
+                blockList.add(data.getItemStack());
+            }
+        }
+        return blockList;
+    }
+
+    /**
+     *
+     * @param playerID
+     * @param matID
+     * @param matData
+     * @param worldID
+     * @return
+     */
     public static int getBlueprintBlockOfTypInWorldNeededFromItem(final String playerID, final int matID, final int matData, final String worldID) {
         ItemStack checkStack = new ItemStack(matID);
         checkStack.getData().setData((byte) matData);
         return getBlueprintBlockOfTypInWorldNeededFromItem(playerID, checkStack, worldID);
     }
 
+    /**
+     *
+     * @param playerID
+     * @param matID
+     * @param matData
+     * @param worldID
+     * @return
+     */
     public static List<BlockData> getBlueprintBuildBlockOfTypInWorldFromItem(final String playerID, final int matID, final int matData, final String worldID) {
         ItemStack checkStack = new ItemStack(matID);
         checkStack.getData().setData((byte) matData);
         return getBlueprintBuildBlockOfTypInWorldFromItem(playerID, checkStack, worldID);
     }
 
+    /**
+     *
+     * @param loc
+     * @return
+     */
     public static String getBlockOwnerAtLocation(final Location loc) {
         return blocks.get(loc.getBlockX() + "" + loc.getBlockY() + "" + loc.getBlockZ() + loc.getWorld().getName()).getPlayerID();
     }
 
+    /**
+     *
+     * @param playerID
+     * @param mat
+     * @param worldID
+     * @return
+     */
     public static int getBlueprintBlockOfTypInWorldNeededFromItem(final String playerID, final ItemStack mat, final String worldID) {
         int count = 0;
         for (BlockDataCache data : activeUsers.get(playerID).getPlayerBlocks().values()) {
@@ -505,6 +848,13 @@ public class DataHandler {
         return count;
     }
 
+    /**
+     *
+     * @param playerID
+     * @param mat
+     * @param worldID
+     * @return
+     */
     public static List<BlockData> getBlueprintBuildBlockOfTypInWorldFromItem(final String playerID, final ItemStack mat, final String worldID) {
         List<BlockData> blockList = new CopyOnWriteArrayList();
         for (BlockDataCache data : activeUsers.get(playerID).getPlayerBlocks().values()) {
@@ -515,6 +865,11 @@ public class DataHandler {
         return blockList;
     }
 
+    /**
+     *
+     * @param placedBlock
+     * @param world
+     */
     public static void removeBlueprintBlock(final BlockData placedBlock, final String world) {
         blocks.remove(placedBlock.getX() + "" + placedBlock.getY() + "" + placedBlock.getZ() + world);
         Bukkit.getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
@@ -533,6 +888,9 @@ public class DataHandler {
         });
     }
 
+    /**
+     *
+     */
     public static void setupCache() {
         try {
             List<ResultData> result = query("SELECT playerID, locX, locY, locZ, gameMode, inventory, armour, active  FROM players;");
@@ -575,6 +933,9 @@ public class DataHandler {
         }
     }
 
+    /**
+     *
+     */
     public static void setupDB() {
         try {
             switch (databaseType) {

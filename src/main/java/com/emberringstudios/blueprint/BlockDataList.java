@@ -7,7 +7,6 @@ package com.emberringstudios.blueprint;
 
 import java.util.Collection;
 import java.util.concurrent.CopyOnWriteArrayList;
-import org.bukkit.block.Block;
 
 /**
  *
@@ -16,14 +15,28 @@ import org.bukkit.block.Block;
  */
 public class BlockDataList<T extends BlockData> extends CopyOnWriteArrayList<T> {
 
+    /**
+     *
+     */
     public BlockDataList() {
         super();
     }
 
+    /**
+     *
+     * @param collection
+     */
     public BlockDataList(Collection<? extends T> collection) {
         super(collection);
     }
 
+    /**
+     *
+     * @param x
+     * @param y
+     * @param z
+     * @return
+     */
     public int getBlockAtLocation(final int x, final int y, final int z) {
         int count = 0;
         for (BlockData block : this) {
@@ -35,6 +48,11 @@ public class BlockDataList<T extends BlockData> extends CopyOnWriteArrayList<T> 
         return -1;
     }
 
+    /**
+     *
+     * @param e
+     * @return
+     */
     @Override
     public boolean add(T e) {
         if (this.contains(e)) {
@@ -53,6 +71,11 @@ public class BlockDataList<T extends BlockData> extends CopyOnWriteArrayList<T> 
         }
     }
 
+    /**
+     *
+     * @param index
+     * @param e
+     */
     @Override
     public void add(int index, T e) {
         if (!this.contains(e)) {
@@ -68,6 +91,11 @@ public class BlockDataList<T extends BlockData> extends CopyOnWriteArrayList<T> 
         }
     }
 
+    /**
+     *
+     * @param collection
+     * @return
+     */
     @Override
     public boolean addAll(Collection<? extends T> collection) {
         BlockDataList<T> copy = new BlockDataList<T>(collection);
@@ -78,6 +106,12 @@ public class BlockDataList<T extends BlockData> extends CopyOnWriteArrayList<T> 
         return true;
     }
 
+    /**
+     *
+     * @param index
+     * @param collection
+     * @return
+     */
     @Override
     public boolean addAll(int index, Collection<? extends T> collection) {
         BlockDataList<T> copy = new BlockDataList<T>(collection);
@@ -88,6 +122,10 @@ public class BlockDataList<T extends BlockData> extends CopyOnWriteArrayList<T> 
         return true;
     }
 
+    /**
+     *
+     * @param collection
+     */
     public void airAll(Collection<? extends T> collection) {
         for (T data : collection) {
             BlockData blockData = new BlockData(data);

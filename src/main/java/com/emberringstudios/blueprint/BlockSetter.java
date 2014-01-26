@@ -30,6 +30,9 @@ public class BlockSetter implements Runnable {
         blocks = aBlocks;
     }
 
+    /**
+     *
+     */
     public void run() {
         for (BlockData thatData : blocks) {
             if (thatData.getType() == 46) {

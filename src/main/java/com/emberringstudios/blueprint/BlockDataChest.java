@@ -16,6 +16,16 @@ import org.bukkit.block.Block;
 public class BlockDataChest extends BlockData{
     private String owner;
 
+    /**
+     *
+     * @param blockType
+     * @param locX
+     * @param locY
+     * @param locZ
+     * @param data
+     * @param blockWorld
+     * @param owner
+     */
     public BlockDataChest(int blockType, int locX, int locY, int locZ, byte data, World blockWorld, String owner) {
         super(blockType, locX, locY, locZ, data, blockWorld);
         this.owner = owner;

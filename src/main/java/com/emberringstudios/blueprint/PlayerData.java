@@ -24,10 +24,25 @@ public class PlayerData {
     private double locY;
     private double locZ;
 
+    /**
+     *
+     * @param playerID
+     */
     public PlayerData(final String playerID) {
         this.playerID = playerID;
     }
 
+    /**
+     *
+     * @param playerID
+     * @param locX
+     * @param locY
+     * @param locZ
+     * @param gameMode
+     * @param inv
+     * @param armour
+     * @param active
+     */
     public PlayerData(final String playerID, final double locX, final double locY, final double locZ, final int gameMode, final String inv, final String armour, final boolean active) {
         this.playerID = playerID;
         this.locX = locX;
@@ -123,6 +138,10 @@ public class PlayerData {
         this.playerBlocks = playerBlocks;
     }
 
+    /**
+     *
+     * @return
+     */
     public BasicLocation getLocation() {
         return new BasicLocation(locX, locY, locZ);
     }

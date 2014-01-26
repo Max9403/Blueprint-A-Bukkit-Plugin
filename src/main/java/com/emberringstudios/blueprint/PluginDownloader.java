@@ -27,6 +27,11 @@ import org.bukkit.plugin.UnknownDependencyException;
  */
 public class PluginDownloader {
 
+    /**
+     *
+     * @param id
+     * @return
+     */
     public static boolean downloadPlugin(String id) {
         InputStreamReader in = null;
         try {

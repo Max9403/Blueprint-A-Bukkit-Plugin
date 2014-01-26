@@ -15,6 +15,11 @@ import org.bukkit.configuration.serialization.ConfigurationSerialization;
  */
 public class ItemSerial {
 
+    /**
+     *
+     * @param list
+     * @return
+     */
     public static List<Map<String, Object>> serializeItemList(ConfigurationSerializable[] list) {
         List<Map<String, Object>> returnVal = new ArrayList<Map<String, Object>>();
         for (ConfigurationSerializable cs : list) {
@@ -24,6 +29,11 @@ public class ItemSerial {
         return returnVal;
     }
 
+    /**
+     *
+     * @param cs
+     * @return
+     */
     public static Map<String, Object> serialize(ConfigurationSerializable cs) {
         Map<String, Object> serialized = recreateMap(cs.serialize());
         for (Entry<String, Object> entry : serialized.entrySet()) {
@@ -35,6 +45,11 @@ public class ItemSerial {
         return serialized;
     }
 
+    /**
+     *
+     * @param original
+     * @return
+     */
     public static Map<String, Object> recreateMap(Map<String, Object> original) {
         Map<String, Object> map = new HashMap<String, Object>();
         for (Entry<String, Object> entry : original.entrySet()) {
@@ -44,7 +59,13 @@ public class ItemSerial {
     }
 
     // Time for Deserialization
-    @SuppressWarnings("unchecked")
+
+    /**
+     *
+     * @param map
+     * @return
+     */
+        @SuppressWarnings("unchecked")
     public static ConfigurationSerializable deserialize(Map<String, Object> map) {
         for (Entry<String, Object> entry : map.entrySet()) {
 // Check if any of its sub-maps are ConfigurationSerializable. They need to be done first.
@@ -55,6 +76,11 @@ public class ItemSerial {
         return ConfigurationSerialization.deserializeObject(map);
     }
 
+    /**
+     *
+     * @param itemList
+     * @return
+     */
     public static List<ConfigurationSerializable> deserializeItemList(List<Map<String, Object>> itemList) {
         List<ConfigurationSerializable> returnVal = new ArrayList<ConfigurationSerializable>();
         for (Map<String, Object> map : itemList) {

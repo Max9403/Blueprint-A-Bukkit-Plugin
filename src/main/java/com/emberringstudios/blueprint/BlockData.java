@@ -20,11 +20,23 @@ public class BlockData {
     private byte data;
     private World blockWorld;
 
+    /**
+     *
+     * @return String value of the BlockData
+     */
     @Override
     public String toString() {
         return "BlockData{" + "type=" + type + ", locX=" + locX + ", locY=" + locY + ", locZ=" + locZ + ", data=" + data + ", blockWorld=" + blockWorld.getName() + '}';
     }
 
+    /**
+     *
+     * @param blockType
+     * @param locX
+     * @param locY
+     * @param locZ
+     * @param data
+     */
     public BlockData(final int blockType, final int locX, final int locY, final int locZ, final byte data) {
         this.type = blockType;
         this.locX = locX;
@@ -33,6 +45,14 @@ public class BlockData {
         this.data = data;
     }
 
+    /**
+     *
+     * @param blockType
+     * @param locX
+     * @param locY
+     * @param locZ
+     * @param data
+     */
     public BlockData(final Material blockType, final int locX, final int locY, final int locZ, final byte data) {
         this.type = blockType.getId();
         this.locX = locX;
@@ -41,6 +61,10 @@ public class BlockData {
         this.data = data;
     }
 
+    /**
+     *
+     * @param blockData
+     */
     public BlockData(final BlockData blockData) {
         this.type = blockData.getType();
         this.locX = blockData.getX();
@@ -50,6 +74,10 @@ public class BlockData {
         this.blockWorld = blockData.getBlockWorld();
     }
 
+    /**
+     *
+     * @param blockData
+     */
     public BlockData(final Block blockData) {
         this.type = blockData.getTypeId();
         this.locX = blockData.getX();
@@ -59,6 +87,15 @@ public class BlockData {
         this.blockWorld = blockData.getWorld();
     }
 
+    /**
+     *
+     * @param blockType
+     * @param locX
+     * @param locY
+     * @param locZ
+     * @param data
+     * @param blockWorld
+     */
     public BlockData(final int blockType, final int locX, final int locY, final int locZ, final byte data, final World blockWorld) {
         this.type = blockType;
         this.locX = locX;
@@ -68,6 +105,15 @@ public class BlockData {
         this.blockWorld = blockWorld;
     }
 
+    /**
+     *
+     * @param blockType
+     * @param locX
+     * @param locY
+     * @param locZ
+     * @param data
+     * @param blockWorld
+     */
     public BlockData(final Material blockType, final int locX, final int locY, final int locZ, final byte data, final World blockWorld) {
         this.type = blockType.getId();
         this.locX = locX;
@@ -133,6 +179,10 @@ public class BlockData {
         this.locZ = locZ;
     }
 
+    /**
+     *
+     * @return
+     */
     public Location getLocation() {
         return new Location(blockWorld, locX, locY, locZ);
     }
@@ -165,6 +215,10 @@ public class BlockData {
         this.blockWorld = blockWorld;
     }
 
+    /**
+     *
+     * @param blockWorld
+     */
     public void loadBlockIntoWorld(World blockWorld) {
         setBlockWorld(blockWorld);
         try {
@@ -174,6 +228,10 @@ public class BlockData {
         }
     }
 
+    /**
+     *
+     * @throws NoWorldGivenException
+     */
     public void loadBlockIntoWorld() throws NoWorldGivenException {
         if (blockWorld == null) {
             throw new NoWorldGivenException("Developer forgot to set a world for this block");
@@ -182,10 +240,19 @@ public class BlockData {
         modBlock.setTypeIdAndData(type, data, false);
     }
 
+    /**
+     *
+     * @param tempBlock
+     * @return
+     */
     public boolean equalToBlock(Block tempBlock) {
         return tempBlock.getTypeId() == type && tempBlock.getX() == locX && tempBlock.getY() == locY && tempBlock.getZ() == locZ && tempBlock.getData() == data && tempBlock.getWorld() == blockWorld;
     }
 
+    /**
+     *
+     * @return
+     */
     public String convertToKey() {
         return locX + "" + locY + "" + locZ + blockWorld.getName();
     }

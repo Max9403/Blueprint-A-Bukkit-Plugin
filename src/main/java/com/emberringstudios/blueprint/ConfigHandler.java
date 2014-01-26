@@ -36,6 +36,8 @@ public class ConfigHandler {
     private volatile static File greenlistConfigFile = null;
     private volatile static FileConfiguration blacklistConfig = null;
     private volatile static File blacklistConfigFile = null;
+    private volatile static FileConfiguration blocklistConfig = null;
+    private volatile static File blocklistConfigFile = null;
 
     /**
      * @return the defaultBukkitConfig
@@ -109,6 +111,9 @@ public class ConfigHandler {
         return theDataHub;
     }
     
+    /**
+     *
+     */
     public static void reloadGreenlistConfig() {
         if (greenlistConfigFile == null) {
             greenlistConfigFile = new File(Blueprint.getPlugin().getDataFolder(), "Greenlist.yml");
@@ -123,6 +128,10 @@ public class ConfigHandler {
         }
     }
 
+    /**
+     *
+     * @return
+     */
     public static FileConfiguration getGreenlistConfig() {
         if (greenlistConfig == null) {
             reloadGreenlistConfig();
@@ -130,6 +139,9 @@ public class ConfigHandler {
         return greenlistConfig;
     }
 
+    /**
+     *
+     */
     public static void saveGreenlistConfig() {
         if (greenlistConfig == null || greenlistConfigFile == null) {
             return;
@@ -141,6 +153,9 @@ public class ConfigHandler {
         }
     }
 
+    /**
+     *
+     */
     public static void reloadBlacklistConfig() {
         if (blacklistConfigFile == null) {
             blacklistConfigFile = new File(Blueprint.getPlugin().getDataFolder(), "List.yml");
@@ -155,6 +170,10 @@ public class ConfigHandler {
         }
     }
 
+    /**
+     *
+     * @return
+     */
     public static FileConfiguration getBlacklistConfig() {
         if (blacklistConfig == null) {
             reloadBlacklistConfig();
@@ -162,6 +181,9 @@ public class ConfigHandler {
         return blacklistConfig;
     }
 
+    /**
+     *
+     */
     public static void saveBlacklistConfig() {
         if (blacklistConfig == null ||blacklistConfigFile == null) {
             return;
