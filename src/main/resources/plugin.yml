@@ -1,6 +1,6 @@
 name: Blueprint Builder
 main: com.emberringstudios.blueprint.Blueprint
-version: 1.1.0
+version: 1.2.1
 author: Max9403
 description: Allows you to create a blueprint of what you want to build and build it automatically when you have collected all the materials for it
 softdepend: [SQLibrary]
@@ -17,13 +17,20 @@ commands:
         description: Mark a chest as a chest that contain resources needed for building
         usage: /<command>
         permission: blueprint.mark
-        permission-message: Seems like amnesia kicked and you can't remember what you were doing (don't have permision to mark resource chest)
+        permission-message: Seems like amnesia kicked in and you can't remember what you were doing (don't have permision to mark resource chest)
         aliases: [mrc]
     listresources:
         description: Shows all the matterials users' construction needs
         usage: /<command>
         permission: blueprint.listresources
+        permission-message: You seem to have lost your clipboard (don't have permision to view list of resources needed)
         aliases: [lr, resourceslist]
+    resourceboard:
+        description: Perminently have a list resources on screen
+        usage: /<command>
+        permission: blueprint.resourceboard
+        permission-message: Seems you dropped the pins needed to stick up your list of resources (don't have permision to set list of resources on screen)
+        aliases: [rb]
         
 permissions:
     blueprint.*:
@@ -46,3 +53,6 @@ permissions:
             blueprint.listresources:
                 description: Allows to show your needed resources
                 default: true
+    blueprint.resourceboard:
+        description: Allows to show your needed resources in scoreboard
+        default: true

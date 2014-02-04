@@ -1,11 +1,8 @@
 package com.emberringstudios.blueprint;
 
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import org.bukkit.Bukkit;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
@@ -78,10 +75,14 @@ public class Blueprint extends JavaPlugin {
     @Override
     public void onEnable() {
         plugin = this;
-        if (!this.getServer().getPluginManager().isPluginEnabled("SQLibrary") && this.getConfig().getBoolean("use.downloads", true)) {
-            info("Downloadind dependecy: SQLibrary");
-            if (PluginDownloader.downloadPlugin("43840")) {
-                info("Loaded SQLibrary");
+        if (!this.getServer().getPluginManager().isPluginEnabled("SQLibrary")) {
+            if (false && this.getConfig().getBoolean("use.downloads", true)) {
+                info("Downloadind dependecy: SQLibrary");
+                if (PluginDownloader.downloadPlugin("43840")) {
+                    info("Loaded SQLibrary");
+                }
+            } else {
+                error("Please download and install SQLibrary, a link can be found on my plugins page");
             }
         }
 
@@ -97,6 +98,7 @@ public class Blueprint extends JavaPlugin {
         Commands.register();
         ConfigHandler.saveGreenlistConfig();
         ConfigHandler.saveBlacklistConfig();
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, new QueryProcessor());
         plugin.getServer().getScheduler().runTaskTimer(plugin, new BlueprintBuild(plugin), ConfigHandler.getDefaultBukkitConfig().getInt("limits.time to check", 60), ConfigHandler.getDefaultBukkitConfig().getInt("limits.time to check", 60));
         plugin.getServer().getScheduler().runTaskTimer(plugin, new BlockSetter(), ConfigHandler.getDefaultBukkitConfig().getInt("limits.time to check", 60), ConfigHandler.getDefaultBukkitConfig().getInt("limits.time to check", 60));
         if (ConfigHandler.getDefaultBukkitConfig().getBoolean("limits.blacklist")) {

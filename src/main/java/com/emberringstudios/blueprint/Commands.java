@@ -1,15 +1,11 @@
 package com.emberringstudios.blueprint;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -17,7 +13,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.material.MaterialData;
 import org.bukkit.metadata.LazyMetadataValue;
 import org.bukkit.metadata.MetadataValue;
 import org.yaml.snakeyaml.Yaml;
@@ -36,6 +31,7 @@ public class Commands {
         Blueprint.getPlugin().getCommand("blueprint").setExecutor(new BlueprintCommand());
         Blueprint.getPlugin().getCommand("markresourcechest").setExecutor(new MarkCommand());
         Blueprint.getPlugin().getCommand("listresources").setExecutor(new ResourceLister());
+        Blueprint.getPlugin().getCommand("resourceboard").setExecutor(new ResourceScoreboard());
     }
 
     private static class MarkCommand implements CommandExecutor {
@@ -97,7 +93,12 @@ public class Commands {
                     player.setGameMode(DataHandler.getOriginalPlayerGameMode(playerId));
                     player.sendMessage("You are no longer in blueprint mode, just gona deconstruct it");
                 } else {
-                    DataHandler.setOriginalPlayerGameMode(playerId, player.getGameMode());
+                    Yaml durpStore = new Yaml();
+                    String items = durpStore.dump(ItemSerial.serializeItemList(player.getInventory().getContents()));
+                    String armour = durpStore.dump(ItemSerial.serializeItemList(player.getInventory().getArmorContents()));
+
+                    DataHandler.setPlayer(playerId, player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ(), items.replaceAll("'", "''"), armour.replaceAll("'", "''"), 1, player.getGameMode());
+
                     List<BlockData> playerChestLocations = DataHandler.getPlayerChestLocations(playerId);
 
                     boolean resCheck = false;
@@ -120,13 +121,6 @@ public class Commands {
                     if (resCheck) {
                         player.sendMessage(ChatColor.RED + "There are blocks in your resource chest" + (playerChestLocations.size() > 1 ? "s. " : ". ") + "Blocks in your resource chest will still placed even when in blueprint mode and will have to be removed manualy");
                     }
-
-                    Yaml durpStore = new Yaml();
-                    String items = durpStore.dump(ItemSerial.serializeItemList(player.getInventory().getContents()));
-                    String armour = durpStore.dump(ItemSerial.serializeItemList(player.getInventory().getArmorContents()));
-
-                    DataHandler.activatePlayer(playerId, items, armour);
-                    DataHandler.setPlayerLocation(playerId, player.getLocation());
                     BlockSetter.getBlocks().addAll(DataHandler.getBlueprint(playerId, player.getWorld().getName()));
                     player.setGameMode(GameMode.CREATIVE);
                     player.sendMessage("You are now in blueprint mode, just busy reconstructing it");
@@ -141,68 +135,82 @@ public class Commands {
     private static class ResourceLister implements CommandExecutor {
 
         public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-            Player player = (Player) sender;
-            final String playerId = ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getPlayer().getName();
-            if (sender.hasPermission("blueprint.listresources.others") && args.length > 0) {
-                List<ItemStack> blueprint;
-                for (String part : args) {
-                    if (ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true)) {
-                        player = Bukkit.getServer().getPlayer(part);
-                        if (player == null) {
-                            sender.sendMessage("Can only get player when he/she is online in UUID mode");
-                            continue;
+            if (sender instanceof Player) {
+                Player player = (Player) sender;
+                final String playerId = ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getPlayer().getName();
+                if (sender.hasPermission("blueprint.listresources.others") && args.length > 0) {
+                    List<ItemStack> blueprint;
+                    for (String part : args) {
+                        if (ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true)) {
+                            player = Bukkit.getServer().getPlayer(part);
+                            if (player == null) {
+                                sender.sendMessage("Can only get player when he/she is online in UUID mode");
+                                continue;
+                            } else {
+                                blueprint = sortItemStack(DataHandler.getBlueprintItemTypes(player.getUniqueId().toString()));
+                            }
                         } else {
-                            blueprint = sortItemStack(DataHandler.getBlueprintItemTypes(player.getUniqueId().toString()));
+                            blueprint = sortItemStack(DataHandler.getBlueprintItemTypes(part));
                         }
-                    } else {
-                        blueprint = sortItemStack(DataHandler.getBlueprintItemTypes(part));
-                    }
-                    if (blueprint.size() > 0) {
-                        String message = part + " needs:";
-                        for (ItemStack data : blueprint) {
-                            message += "\n" + ItemResolver.getName(new ItemTemp(data)) + ": " + data.getAmount();
+                        if (blueprint.size() > 0) {
+                            String message = part + " needs:";
+                            for (ItemStack data : blueprint) {
+                                message += "\n" + ItemResolver.getName(new ItemTemp(data)) + ": " + data.getAmount();
+                            }
+                            sender.sendMessage(message);
+                        } else {
+                            sender.sendMessage(part + " needs no matterials");
                         }
-                        sender.sendMessage(message);
-                    } else {
-                        sender.sendMessage(part + " needs no matterials");
-                    }
-                }
-                return true;
-            } else {
-                if (sender instanceof Player) {
-                    List<ItemStack> blueprint = sortItemStack(DataHandler.getBlueprintItemTypes(playerId));
-                    if (blueprint.size() > 0) {
-                        String message = "You need:";
-                        for (ItemStack data : blueprint) {
-                            message += "\n" + ItemResolver.getName(new ItemTemp(data)) + ": " + data.getAmount();
-                        }
-                        sender.sendMessage(message);
-                    } else {
-                        sender.sendMessage("You need no matterials");
                     }
                     return true;
+                } else {
+                    if (sender instanceof Player) {
+                        List<ItemStack> blueprint = sortItemStack(DataHandler.getBlueprintItemTypes(playerId));
+                        if (blueprint.size() > 0) {
+                            String message = "You need:";
+                            for (ItemStack data : blueprint) {
+                                message += "\n" + ItemResolver.getName(new ItemTemp(data)) + ": " + data.getAmount();
+                            }
+                            sender.sendMessage(message);
+                        } else {
+                            sender.sendMessage("You need no matterials");
+                        }
+                        return true;
+                    }
                 }
             }
             return false;
         }
+    }
 
-        private List<ItemStack> sortItemStack(List<ItemStack> items) {
-            List<ItemStack> list = new CopyOnWriteArrayList();
-            for (ItemStack item : items) {
-                int contains = -1;
-                for (int count = 0; count < list.size(); count++) {
-                    if (list.get(count).isSimilar(item)) {
-                        contains = count;
-                        break;
-                    }
-                }
-                if (contains > -1) {
-                    list.get(contains).setAmount(list.get(contains).getAmount() + 1);
-                } else {
-                    list.add(item);
+    private static class ResourceScoreboard implements CommandExecutor {
+
+        public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+
+            if (sender instanceof Player) {
+                ScoreBoardSystem.togglePlayer((Player) sender);
+                return true;
+            }
+            return false;
+        }
+    }
+
+    public static List<ItemStack> sortItemStack(List<ItemStack> items) {
+        List<ItemStack> list = new CopyOnWriteArrayList();
+        for (ItemStack item : items) {
+            int contains = -1;
+            for (int count = 0; count < list.size(); count++) {
+                if (list.get(count).isSimilar(item)) {
+                    contains = count;
+                    break;
                 }
             }
-            return list;
+            if (contains > -1) {
+                list.get(contains).setAmount(list.get(contains).getAmount() + 1);
+            } else {
+                list.add(item);
+            }
         }
+        return list;
     }
 }

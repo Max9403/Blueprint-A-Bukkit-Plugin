@@ -4,8 +4,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -49,7 +51,7 @@ class BlueprintBuild implements Runnable {
                             ItemStack temp = (ItemStack) pairs.getValue();
                             if (temp.getData().getData() == mat.getData().getData()) {
                                 int inChest = temp.getAmount();
-                                int needed = DataHandler.getBlueprintBlockOfTypInWorldNeededFromItem(name, mat,loc.getLocation().getBlock().getWorld().getName());
+                                int needed = DataHandler.getBlueprintBlockOfTypInWorldNeededFromItem(name, mat, loc.getLocation().getBlock().getWorld().getName());
                                 int remaining = (needed - inChest) > 0 ? needed - inChest : 0;
                                 List<BlockData> blocks = DataHandler.getBlueprintBuildBlockOfTypInWorldFromItem(name, mat, loc.getLocation().getBlock().getWorld().getName());
                                 for (int counter = 0; counter < needed - remaining; counter++) {
@@ -72,6 +74,15 @@ class BlueprintBuild implements Runnable {
                                         blocks.get(counter).loadBlockIntoWorld(loc.getLocation().getBlock().getWorld());
                                     }
                                     placedBlocks++;
+                                    if (!ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true)) {
+                                        ScoreBoardSystem.updatePlayer(Bukkit.getPlayerExact(name));
+                                    } else {
+                                        for (Player player : Bukkit.getServer().getOnlinePlayers()) {
+                                            if (player.getUniqueId().toString().equalsIgnoreCase(name)) {
+                                                ScoreBoardSystem.updatePlayer(player);
+                                            }
+                                        }
+                                    }
                                 }
                             }
                             it.remove(); // avoids a ConcurrentModificationException

@@ -1,16 +1,12 @@
 package com.emberringstudios.blueprint;
 
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import lib.PatPeter.SQLibrary.Database;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -26,7 +22,7 @@ import org.yaml.snakeyaml.Yaml;
  */
 public class DataHandler {
 
-    private static int databaseType;
+    private static volatile int databaseType = ConfigHandler.getDefaultBukkitConfig().getInt("database.type", 0);
 
     /**
      *
@@ -134,21 +130,24 @@ public class DataHandler {
      * @param itemData
      * @param placedBlock
      */
-    public static void addPlayerBlock(final String name, final int itemID, final int itemData, final BlockData placedBlock) {
-        blocks.put(placedBlock.convertToKey(), new BlockDataCache(placedBlock, name, itemID, (byte) itemData));
-        activeUsers.get(name).getPlayerBlocks().put(placedBlock.convertToKey(), new BlockDataCache(placedBlock, name, itemID, (byte) itemData));
-        Bukkit.getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
-            public void run() {
-                try {
-                    if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
+    public static void addPlayerBlock(final String name, final int itemID, final short itemData, final BlockData placedBlock) {
+        if (blocks.get(placedBlock.convertToKey()) == null) {
+            blocks.put(placedBlock.convertToKey(), new BlockDataCache(placedBlock, name, itemID, (byte) itemData));
+            activeUsers.get(name).getPlayerBlocks().put(placedBlock.convertToKey(), new BlockDataCache(placedBlock, name, itemID, (byte) itemData));
+            QueryProcessor.addQuery(new QueryData("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';", new QueryCallback() {
+                public void result(List<ResultData> result) {
+                    if (Integer.parseInt(result.get(0).getKey("Count")) == 0) {
                         setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
                     }
-                    query("INSERT INTO blocks (playerID,  itemID, itemMeta, blockID, blockX, blockY, blockZ, blockMeta, world) VALUES ('" + name + "', " + itemID + ", '" + itemData + "', '" + placedBlock.getType() + "', " + placedBlock.getX() + ", " + placedBlock.getY() + ", " + placedBlock.getZ() + ", " + (int) placedBlock.getData() + ", '" + placedBlock.getBlockWorld().getName() + "');");
-                } catch (SQLException ex) {
-                    Blueprint.error("Couldn't add block to player", ex);
+                    QueryProcessor.addQuery(new QueryData("INSERT INTO blocks (playerID,  itemID, itemMeta, blockID, blockX, blockY, blockZ, blockMeta, world) VALUES ('" + name + "', " + itemID + ", '" + itemData + "', '" + placedBlock.getType() + "', " + placedBlock.getX() + ", " + placedBlock.getY() + ", " + placedBlock.getZ() + ", " + (int) placedBlock.getData() + ", '" + placedBlock.getBlockWorld().getName() + "');", new QueryCallback() {
+                        public void result(List<ResultData> result) {
+                        }
+                    }));
                 }
-            }
-        });
+            }));
+        } else {
+            updatePlayerBlockAndItem(name, new ItemStack(itemID, 1, itemData), placedBlock);
+        }
     }
 
     /**
@@ -160,24 +159,23 @@ public class DataHandler {
     public static void removePlayerBlock(final String name, final BlockData placedBlock, final String world) {
         blocks.remove(placedBlock.convertToKey());
         activeUsers.get(name).getPlayerBlocks().remove(placedBlock.convertToKey());
-        Bukkit.getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
-            public void run() {
-                try {
-                    if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
-                        setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
-                    }
-                    query("DELETE FROM blocks WHERE playerID = '" + name
-                            + "' AND blockID = '" + placedBlock.getType()
-                            + "' AND blockX = " + placedBlock.getX()
-                            + " AND blockY = " + placedBlock.getY()
-                            + " AND blockZ = " + placedBlock.getZ()
-                            + " AND blockMeta = " + (int) placedBlock.getData()
-                            + " AND world = '" + world + "';");
-                } catch (SQLException ex) {
-                    Blueprint.error("Couldn't activate player", ex);
+        QueryProcessor.addQuery(new QueryData("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';", new QueryCallback() {
+            public void result(List<ResultData> result) {
+                if (Integer.parseInt(result.get(0).getKey("Count")) == 0) {
+                    setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
                 }
+                QueryProcessor.addQuery(new QueryData("DELETE FROM blocks WHERE playerID = '" + name
+                        + "' AND blockID = '" + placedBlock.getType()
+                        + "' AND blockX = " + placedBlock.getX()
+                        + " AND blockY = " + placedBlock.getY()
+                        + " AND blockZ = " + placedBlock.getZ()
+                        + " AND blockMeta = " + (int) placedBlock.getData()
+                        + " AND world = '" + world + "';", new QueryCallback() {
+                            public void result(List<ResultData> result) {
+                            }
+                        }));
             }
-        });
+        }));
     }
 
     /**
@@ -190,23 +188,22 @@ public class DataHandler {
         final BlockData bd = new BlockData(placedBlock);
         blocks.remove(bd.convertToKey());
         activeUsers.get(name).getPlayerBlocks().remove(bd.convertToKey());
-        Bukkit.getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
-            public void run() {
-                try {
-                    if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
-                        setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
-                    }
-                    query("DELETE FROM blocks WHERE playerID = '" + name
-                            + "' AND blockID = '" + bd.getType()
-                            + "' AND blockX = " + bd.getX()
-                            + " AND blockY = " + bd.getY()
-                            + " AND blockZ = " + bd.getZ()
-                            + " AND world = '" + world + "';");
-                } catch (SQLException ex) {
-                    Blueprint.error("Couldn't activate player", ex);
+        QueryProcessor.addQuery(new QueryData("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';", new QueryCallback() {
+            public void result(List<ResultData> result) {
+                if (Integer.parseInt(result.get(0).getKey("Count")) == 0) {
+                    setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
                 }
+                QueryProcessor.addQuery(new QueryData("DELETE FROM blocks WHERE playerID = '" + name
+                        + "' AND blockID = '" + bd.getType()
+                        + "' AND blockX = " + bd.getX()
+                        + " AND blockY = " + bd.getY()
+                        + " AND blockZ = " + bd.getZ()
+                        + " AND world = '" + world + "';", new QueryCallback() {
+                            public void result(List<ResultData> result) {
+                            }
+                        }));
             }
-        });
+        }));
     }
 
     /**
@@ -263,7 +260,7 @@ public class DataHandler {
      * @return
      */
     public static GameMode getOriginalPlayerGameMode(final String name) {
-        return activeUsers.get(name).getGameMode() == 0 ? GameMode.SURVIVAL : GameMode.ADVENTURE;
+        return GameMode.getByValue(activeUsers.get(name).getGameMode());
     }
 
     /**
@@ -272,24 +269,32 @@ public class DataHandler {
      * @param originalGameMode
      */
     public static void setOriginalPlayerGameMode(final String name, final GameMode originalGameMode) {
-        final int gameMode = originalGameMode == GameMode.ADVENTURE ? 1 : 0;
+        final int gameMode = originalGameMode.getValue();
         if (activeUsers.get(name) == null) {
             activeUsers.put(name, new PlayerData(name));
         }
         activeUsers.get(name).setGameMode(gameMode);
-        Bukkit.getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
-            public void run() {
-                try {
-                    if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
-                        query("INSERT INTO players (playerID, gameMode) VALUES ('" + name + "', " + gameMode + ");");
-                    } else {
-                        query("UPDATE players SET gameMode = " + gameMode + " WHERE playerID = '" + name + "';");
-                    }
-                } catch (SQLException ex) {
-                    Blueprint.error("Could not alter table data", ex);
+        QueryProcessor.addQuery(new QueryData("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';", new QueryCallback() {
+
+            public void result(List<ResultData> result) {
+                if (Integer.parseInt(result.get(0).getKey("Count")) == 0) {
+                    QueryProcessor.addQuery(new QueryData("INSERT INTO players (playerID, gameMode) VALUES ('" + name + "', " + gameMode + ");", new QueryCallback() {
+                        public void result(List<ResultData> result) {
+                        }
+                    }) {
+                        @Override
+                        public boolean runError(Exception ex) {
+                            return !(ex instanceof SQLException);
+                        }
+                    });
+                } else {
+                    QueryProcessor.addQuery(new QueryData("UPDATE players SET gameMode = " + gameMode + " WHERE playerID = '" + name + "';", new QueryCallback() {
+                        public void result(List<ResultData> result) {
+                        }
+                    }));
                 }
             }
-        });
+        }));
     }
 
     /**
@@ -299,6 +304,44 @@ public class DataHandler {
      */
     public static void setPlayerLocation(final String name, final Location place) {
         setPlayerLocation(name, place.getX(), place.getY(), place.getZ());
+    }
+
+    public static void setPlayer(final String name, final double locX, final double locY, final double locZ, final String inv, final String arm, final int active, GameMode gamemode) {
+        final int gameMode = gamemode.getValue();
+        if (activeUsers.get(name) == null) {
+            activeUsers.put(name, new PlayerData(name, locX, locY, locZ, gameMode, inv, arm, active == 1));
+        } else {
+            PlayerData playerData = activeUsers.get(name);
+            playerData.setLocX(locX);
+            playerData.setLocY(locY);
+            playerData.setLocZ(locZ);
+            playerData.setGameMode(gameMode);
+            playerData.setInventory(inv);
+            playerData.setArmour(arm);
+            playerData.setActive(active == 1);
+            activeUsers.put(name, playerData);
+        }
+        QueryProcessor.addQuery(new QueryData("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';", new QueryCallback() {
+            public void result(List<ResultData> result) {
+                if (Integer.parseInt(result.get(0).getKey("Count")) == 0) {
+                    QueryProcessor.addQuery(new QueryData("INSERT INTO players (playerID, locX, locY, locZ, gameMode, inventory, armour, active) VALUES ('" + name + "', " + locX + ", " + locY + ", " + locZ + ", " + gameMode + ", '" + inv + "', '" + arm + "', " + active + ");", new QueryCallback() {
+                        public void result(List<ResultData> result) {
+                        }
+                    }) {
+                        @Override
+                        public boolean runError(Exception ex) {
+                            ex.printStackTrace();
+                            return !(ex instanceof SQLException);
+                        }
+                    });
+                } else {
+                    QueryProcessor.addQuery(new QueryData(MessageFormat.format("UPDATE players SET locX =  {0}, locY =  {1}, locZ = {2}, gameMode = {3},  inventory = ''{4}'', armour = ''{5}'', active = {6} WHERE playerID = ''{7}'';", locX, locY, locZ, gameMode, inv, arm, active, name), new QueryCallback() {
+                        public void result(List<ResultData> result) {
+                        }
+                    }));
+                }
+            }
+        }));
     }
 
     /**
@@ -312,20 +355,32 @@ public class DataHandler {
         activeUsers.get(name).setLocX(locX);
         activeUsers.get(name).setLocY(locY);
         activeUsers.get(name).setLocZ(locZ);
-        Bukkit.getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
-            public void run() {
-                try {
-                    if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
-                        query("INSERT INTO players (playerID, locX, locY, locZ, gameMode) VALUES ('" + name + "', " + locX + ", " + locY + ", " + locZ + ", 0);");
-                    } else {
-                        query("UPDATE players SET locX =  " + locX + ", locY =  " + locY + ", locZ = " + locZ + " WHERE playerID = '" + name + "';");
-                    }
-                } catch (SQLException ex) {
-                    Blueprint.error("Could not alter table data", ex);
 
+        QueryProcessor.addQuery(new QueryData("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';", new QueryCallback() {
+
+            public void result(List<ResultData> result) {
+                if (Integer.parseInt(result.get(0).getKey("Count")) == 0) {
+                    QueryProcessor.addQuery(new QueryData("INSERT INTO players (playerID, locX, locY, locZ, gameMode) VALUES ('" + name + "', " + locX + ", " + locY + ", " + locZ + ", 0);", new QueryCallback() {
+                        public void result(List<ResultData> result) {
+                            QueryProcessor.addQuery(new QueryData("UPDATE players SET locX =  " + locX + ", locY =  " + locY + ", locZ = " + locZ + " WHERE playerID = '" + name + "';", new QueryCallback() {
+                                public void result(List<ResultData> result) {
+                                }
+                            }));
+                        }
+                    }) {
+                        @Override
+                        public boolean runError(Exception ex) {
+                            return !(ex instanceof SQLException);
+                        }
+                    });
+                } else {
+                    QueryProcessor.addQuery(new QueryData("UPDATE players SET locX =  " + locX + ", locY =  " + locY + ", locZ = " + locZ + " WHERE playerID = '" + name + "';", new QueryCallback() {
+                        public void result(List<ResultData> result) {
+                        }
+                    }));
                 }
             }
-        });
+        }));
     }
 
     /**
@@ -345,19 +400,18 @@ public class DataHandler {
      */
     public static void activatePlayer(final String name, final String invData, final String armData) {
         activeUsers.get(name).setActive(true);
-        Bukkit.getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
-            public void run() {
-                try {
-                    if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
-                        setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
-                    }
-                    query("UPDATE players SET active = 1 WHERE playerID = '" + name + "';");
-                } catch (SQLException ex) {
-                    Blueprint.error("Couldn't activate player", ex);
+        QueryProcessor.addQuery(new QueryData("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';", new QueryCallback() {
+            public void result(List<ResultData> result) {
+                if (Integer.parseInt(result.get(0).getKey("Count")) == 0) {
+                    setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
                 }
                 setPlayerInventory(name, invData, armData);
+                QueryProcessor.addQuery(new QueryData("UPDATE players SET active = 1 WHERE playerID = '" + name + "';", new QueryCallback() {
+                    public void result(List<ResultData> result) {
+                    }
+                }));
             }
-        });
+        }));
     }
 
     /**
@@ -367,20 +421,17 @@ public class DataHandler {
      */
     public static PlayerInventory deactivatePlayer(final String name) {
         activeUsers.get(name).setActive(false);
-        Bukkit.getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
-            public void run() {
-                try {
-                    if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
-                        setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
-                    }
-                    query("UPDATE players SET active = 0 WHERE playerID = '" + name + "';");
-                } catch (SQLException ex) {
-
-                    Blueprint.error("Couldn't deactivate player", ex);
+        QueryProcessor.addQuery(new QueryData("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';", new QueryCallback() {
+            public void result(List<ResultData> result) {
+                if (Integer.parseInt(result.get(0).getKey("Count")) == 0) {
+                    setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
                 }
+                QueryProcessor.addQuery(new QueryData("UPDATE players SET active = 0 WHERE playerID = '" + name + "';", new QueryCallback() {
+                    public void result(List<ResultData> result) {
+                    }
+                }));
             }
-        }
-        );
+        }));
         return getAndDeserializeFullPlayerInventory(name);
     }
 
@@ -401,9 +452,11 @@ public class DataHandler {
      */
     public static List<BlockData> getBlueprint(final String playerID, final String worldID) {
         List<BlockData> blockList = new CopyOnWriteArrayList();
-        for (BlockData data : activeUsers.get(playerID).getPlayerBlocks().values()) {
-            if (data.getBlockWorld().getName().equalsIgnoreCase(worldID)) {
-                blockList.add(data);
+        if (activeUsers.get(playerID) != null) {
+            for (BlockData data : activeUsers.get(playerID).getPlayerBlocks().values()) {
+                if (data.getBlockWorld().getName().equalsIgnoreCase(worldID)) {
+                    blockList.add(data);
+                }
             }
         }
         return blockList;
@@ -418,16 +471,10 @@ public class DataHandler {
     public static void setPlayerInventory(final String playerId, final String inv, final String arm) {
         activeUsers.get(playerId).setArmour(arm);
         activeUsers.get(playerId).setInventory(inv);
-        Bukkit.getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
-            public void run() {
-                try {
-                    query("UPDATE players SET inventory = '" + inv + "', armour = '" + arm + "'  WHERE playerID = '" + playerId + "';");
-                } catch (SQLException ex) {
-                    Blueprint.error("Couldn't deactivate player", ex);
-                }
+        QueryProcessor.addQuery(new QueryData("UPDATE players SET inventory = '" + inv + "', armour = '" + arm + "'  WHERE playerID = '" + playerId + "';", new QueryCallback() {
+            public void result(List<ResultData> result) {
             }
-        });
-
+        }));
     }
 
     /**
@@ -454,8 +501,8 @@ public class DataHandler {
      * @return
      */
     public static PlayerInventory getAndDeserializeFullPlayerInventory(final String playerId) {
-        String inv = getPlayerInventory(playerId);
-        String arm = getPlayerArmour(playerId);
+        String inv = getPlayerInventory(playerId).replaceAll("''", "'");
+        String arm = getPlayerArmour(playerId).replaceAll("''", "'");
         Yaml tempSer = new Yaml();
         List<Map<String, Object>> invPre = (List<Map<String, Object>>) tempSer.load(inv);
         List<Map<String, Object>> armPre = (List<Map<String, Object>>) tempSer.load(arm);
@@ -475,23 +522,22 @@ public class DataHandler {
         final BlockDataCache bdc = blocks.get(clickedBlock.convertToKey());
         bdc.setData(clickedBlock.getData());
         bdc.setType(clickedBlock.getType());
-        Bukkit.getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
-            public void run() {
-                try {
-                    if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
-                        setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
-                    }
-                    query("UPDATE blocks SET blockMeta = " + (int) bdc.getData() + ", blockID = '" + bdc.getType() + "' WHERE "
-                            + " playerID = '" + name
-                            + "' AND blockX = " + bdc.getX()
-                            + " AND blockY = " + bdc.getY()
-                            + " AND blockZ = " + bdc.getZ()
-                            + " AND world = '" + bdc.getBlockWorld().getName() + "';");
-                } catch (SQLException ex) {
-                    Blueprint.error("Couldn't activate player", ex);
+        QueryProcessor.addQuery(new QueryData("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';", new QueryCallback() {
+            public void result(List<ResultData> result) {
+                if (Integer.parseInt(result.get(0).getKey("Count")) == 0) {
+                    setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
                 }
+                QueryProcessor.addQuery(new QueryData("UPDATE blocks SET blockMeta = " + (int) bdc.getData() + ", blockID = '" + bdc.getType() + "' WHERE "
+                        + " playerID = '" + name
+                        + "' AND blockX = " + bdc.getX()
+                        + " AND blockY = " + bdc.getY()
+                        + " AND blockZ = " + bdc.getZ()
+                        + " AND world = '" + bdc.getBlockWorld().getName() + "';", new QueryCallback() {
+                            public void result(List<ResultData> result) {
+                            }
+                        }));
             }
-        });
+        }));
     }
 
     /**
@@ -503,23 +549,52 @@ public class DataHandler {
         final BlockDataCache bdc = blocks.get(new BlockData(clickedBlock).convertToKey());
         bdc.setData(clickedBlock.getData());
         bdc.setType(clickedBlock.getTypeId());
-        Bukkit.getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
-            public void run() {
-                try {
-                    if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
-                        setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
-                    }
-                    query("UPDATE blocks SET blockMeta = " + (int) bdc.getData() + ", blockID = '" + bdc.getType() + "' WHERE"
-                            + " playerID = '" + name
-                            + "' AND blockX = " + bdc.getX()
-                            + " AND blockY = " + bdc.getY()
-                            + " AND blockZ = " + bdc.getZ()
-                            + " AND world = '" + bdc.getBlockWorld().getName() + "';");
-                } catch (SQLException ex) {
-                    Blueprint.error("Couldn't activate player", ex);
+        QueryProcessor.addQuery(new QueryData("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';", new QueryCallback() {
+            public void result(List<ResultData> result) {
+                if (Integer.parseInt(result.get(0).getKey("Count")) == 0) {
+                    setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
                 }
+                QueryProcessor.addQuery(new QueryData("UPDATE blocks SET blockMeta = " + (int) bdc.getData() + ", blockID = '" + bdc.getType() + "' WHERE"
+                        + " playerID = '" + name
+                        + "' AND blockX = " + bdc.getX()
+                        + " AND blockY = " + bdc.getY()
+                        + " AND blockZ = " + bdc.getZ()
+                        + " AND world = '" + bdc.getBlockWorld().getName() + "';", new QueryCallback() {
+                            public void result(List<ResultData> result) {
+                            }
+                        }));
             }
-        });
+        }));
+    }
+
+    /**
+     *
+     * @param name
+     * @param item
+     * @param clickedBlock
+     */
+    public static void updatePlayerBlockAndItem(final String name, final ItemStack item, final BlockData clickedBlock) {
+        final BlockDataCache bdc = blocks.get(clickedBlock.convertToKey());
+        bdc.setData(clickedBlock.getData());
+        bdc.setType(clickedBlock.getType());
+        QueryProcessor.addQuery(new QueryData("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';", new QueryCallback() {
+            public void result(List<ResultData> result) {
+                if (Integer.parseInt(result.get(0).getKey("Count")) == 0) {
+                    setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
+                }
+                QueryProcessor.addQuery(new QueryData("UPDATE blocks SET blockMeta = " + (int) bdc.getData() + ", blockID = '" + bdc.getType() + "' WHERE "
+                        + " playerID = '" + name
+                        + "' AND itemID = " + item.getTypeId()
+                        + " AND itemMeta = " + item.getData().getData()
+                        + " AND blockX = " + bdc.getX()
+                        + " AND blockY = " + bdc.getY()
+                        + " AND blockZ = " + bdc.getZ()
+                        + " AND world = '" + bdc.getBlockWorld().getName() + "';", new QueryCallback() {
+                            public void result(List<ResultData> result) {
+                            }
+                        }));
+            }
+        }));
     }
 
     /**
@@ -531,20 +606,21 @@ public class DataHandler {
         final BlockDataChest bdc = new BlockDataChest(placedBlcok, name);
         if (!isPlayerChest(bdc)) {
             chests.put(bdc.convertToKey(), bdc);
+            if (activeUsers.get(name) == null) {
+                setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
+            }
             activeUsers.get(name).getPlayerChests().put(bdc.convertToKey(), bdc);
-            Bukkit.getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
-                public void run() {
-                    try {
-                        if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
-                            setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
-                        }
-                        query("INSERT INTO chests (playerID, blockX, blockY, blockZ, world) VALUES ('" + name + "', " + bdc.getX() + ", " + bdc.getY() + ", " + bdc.getZ() + ", '" + bdc.getBlockWorld().getName() + "');");
-
-                    } catch (SQLException ex) {
-                        Blueprint.error("Couldn't activate player", ex);
+            QueryProcessor.addQuery(new QueryData("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';", new QueryCallback() {
+                public void result(List<ResultData> result) {
+                    if (Integer.parseInt(result.get(0).getKey("Count")) == 0) {
+                        setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
                     }
+                    QueryProcessor.addQuery(new QueryData("INSERT INTO chests (playerID, blockX, blockY, blockZ, world) VALUES ('" + name + "', " + bdc.getX() + ", " + bdc.getY() + ", " + bdc.getZ() + ", '" + bdc.getBlockWorld().getName() + "');", new QueryCallback() {
+                        public void result(List<ResultData> result) {
+                        }
+                    }));
                 }
-            });
+            }));
         }
     }
 
@@ -563,18 +639,18 @@ public class DataHandler {
             } else {
                 return;
             }
-            Bukkit.getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
-                public void run() {
-                    try {
-                        if (Integer.parseInt(query("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';").get(0).getKey("Count")) == 0) {
-                            setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
-                        }
-                        query("DELETE FROM chests WHERE playerID = '" + name + "' AND blockX = " + bdc.getX() + " AND blockY = " + bdc.getY() + " AND blockZ  = " + bdc.getZ() + " AND world = '" + bdc.getBlockWorld().getName() + "';");
-                    } catch (SQLException ex) {
-                        Blueprint.error("Couldn't activate player", ex);
+            QueryProcessor.addQuery(new QueryData("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';", new QueryCallback() {
+                public void result(List<ResultData> result) {
+                    if (Integer.parseInt(result.get(0).getKey("Count")) == 0) {
+                        setOriginalPlayerGameMode(name, GameMode.SURVIVAL);
                     }
+                    QueryProcessor.addQuery(new QueryData("DELETE FROM chests WHERE playerID = '" + name + "' AND blockX = " + bdc.getX() + " AND blockY = " + bdc.getY() + " AND blockZ  = " + bdc.getZ() + " AND world = '" + bdc.getBlockWorld().getName() + "';", new QueryCallback() {
+                        public void result(List<ResultData> result) {
+                        }
+                    }));
+
                 }
-            });
+            }));
         }
     }
 
@@ -724,22 +800,22 @@ public class DataHandler {
      * @param clickedBlock
      */
     public static void updateBlock(final Block clickedBlock) {
-        final BlockDataCache bdc = blocks.get(new BlockData(clickedBlock).convertToKey());
+        BlockDataCache bdc = blocks.get(new BlockData(clickedBlock).convertToKey());
         bdc.setData(clickedBlock.getData());
         bdc.setType(clickedBlock.getTypeId());
-        Bukkit.getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
-            public void run() {
-                try {
-                    query("UPDATE blocks SET blockMeta = " + bdc.getData() + ",  blockID = " + bdc.getType() + " WHERE "
-                            + "  blockX = " + bdc.getX()
-                            + " AND blockY = " + bdc.getY()
-                            + " AND blockZ = " + bdc.getZ()
-                            + " AND world = '" + bdc.getBlockWorld().getName() + "';");
-                } catch (SQLException ex) {
-                    Blueprint.error("Couldn't activate player", ex);
-                }
-            }
-        });
+        blocks.put(bdc.convertToKey(), bdc);
+        bdc = activeUsers.get(blocks.get(bdc.convertToKey()).getPlayerID()).getPlayerBlocks().get(bdc.convertToKey());
+        bdc.setData(clickedBlock.getData());
+        bdc.setType(clickedBlock.getTypeId());
+        activeUsers.get(blocks.get(bdc.convertToKey()).getPlayerID()).getPlayerBlocks().put(bdc.convertToKey(), bdc);
+        QueryProcessor.addQuery(new QueryData("UPDATE blocks SET blockMeta = " + bdc.getData() + ",  blockID = " + bdc.getType() + " WHERE "
+                + "  blockX = " + bdc.getX()
+                + " AND blockY = " + bdc.getY()
+                + " AND blockZ = " + bdc.getZ()
+                + " AND world = '" + bdc.getBlockWorld().getName() + "';", new QueryCallback() {
+                    public void result(List<ResultData> result) {
+                    }
+                }));
     }
 
     /**
@@ -872,182 +948,164 @@ public class DataHandler {
      */
     public static void removeBlueprintBlock(final BlockData placedBlock, final String world) {
         blocks.remove(placedBlock.getX() + "" + placedBlock.getY() + "" + placedBlock.getZ() + world);
-        Bukkit.getScheduler().runTaskAsynchronously(Blueprint.getPlugin(), new Runnable() {
-            public void run() {
-                try {
-                    query("DELETE FROM blocks WHERE blockID = '" + placedBlock.getType()
-                            + "' AND blockX = " + placedBlock.getX()
-                            + " AND blockY = " + placedBlock.getY()
-                            + " AND blockZ = " + placedBlock.getZ()
-                            + " AND blockMeta = " + (int) placedBlock.getData()
-                            + " AND world = '" + world + "';");
-                } catch (SQLException ex) {
-                    Blueprint.error("Couldn't activate player", ex);
-                }
-            }
-        });
+        QueryProcessor.addQuery(new QueryData("DELETE FROM blocks WHERE blockID = '" + placedBlock.getType()
+                + "' AND blockX = " + placedBlock.getX()
+                + " AND blockY = " + placedBlock.getY()
+                + " AND blockZ = " + placedBlock.getZ()
+                + " AND blockMeta = " + (int) placedBlock.getData()
+                + " AND world = '" + world + "';", new QueryCallback() {
+                    public void result(List<ResultData> result) {
+                    }
+                }));
     }
 
     /**
      *
      */
     public static void setupCache() {
-        try {
-            List<ResultData> result = query("SELECT playerID, locX, locY, locZ, gameMode, inventory, armour, active  FROM players;");
-            for (ResultData data : result) {
-                activeUsers.put(data.getKey("playerID"), new PlayerData(data.getKey("playerID"), Double.parseDouble(data.getKey("locX")), Double.parseDouble(data.getKey("locY")), Double.parseDouble(data.getKey("locZ")), Integer.parseInt(data.getKey("gameMode")), data.getKey("inventory"), data.getKey("armour"), data.getKey("active").equals("1")));
+        QueryProcessor.addQuery(new QueryData("SELECT playerID, locX, locY, locZ, gameMode, inventory, armour, active  FROM players;", new QueryCallback() {
+            public void result(List<ResultData> result) {
+                for (ResultData data : result) {
+                    activeUsers.put(data.getKey("playerID"), new PlayerData(data.getKey("playerID"), Double.parseDouble(data.getKey("locX")), Double.parseDouble(data.getKey("locY")), Double.parseDouble(data.getKey("locZ")), Integer.parseInt(data.getKey("gameMode")), data.getKey("inventory"), data.getKey("armour"), data.getKey("active").equals("1")));
+                }
+                QueryProcessor.addQuery(new QueryData("SELECT playerID, itemID, itemMeta, blockID, blockX, blockY,blockZ, blockMeta, world  FROM blocks;", new QueryCallback() {
+                    public void result(List<ResultData> result) {
+                        for (ResultData data : result) {
+                            activeUsers.get(data.getKey("playerID")).getPlayerBlocks().put(data.getKey("blockX") + data.getKey("blockY") + data.getKey("blockZ") + data.getKey("world"),
+                                    new BlockDataCache(Integer.parseInt(data.getKey("blockID")),
+                                            Integer.parseInt(data.getKey("blockX")),
+                                            Integer.parseInt(data.getKey("blockY")),
+                                            Integer.parseInt(data.getKey("blockZ")),
+                                            Byte.parseByte(data.getKey("blockMeta")),
+                                            Bukkit.getWorld(data.getKey("world")),
+                                            data.getKey("playerID"),
+                                            Integer.parseInt(data.getKey("itemID")),
+                                            Integer.parseInt(data.getKey("itemMeta"))
+                                    ));
+                            blocks.put(data.getKey("blockX") + data.getKey("blockY") + data.getKey("blockZ") + data.getKey("world"),
+                                    new BlockDataCache(Integer.parseInt(data.getKey("blockID")),
+                                            Integer.parseInt(data.getKey("blockX")),
+                                            Integer.parseInt(data.getKey("blockY")),
+                                            Integer.parseInt(data.getKey("blockZ")),
+                                            Byte.parseByte(data.getKey("blockMeta")),
+                                            Bukkit.getWorld(data.getKey("world")),
+                                            data.getKey("playerID"),
+                                            Integer.parseInt(data.getKey("itemID")),
+                                            Integer.parseInt(data.getKey("itemMeta"))
+                                    ));
+                        }
+                        QueryProcessor.addQuery(new QueryData("SELECT playerID, world, blockX, blockY, blockZ  FROM chests;", new QueryCallback() {
+                            public void result(List<ResultData> result) {
+                                for (ResultData data : result) {
+                                    BlockDataChest bdc = new BlockDataChest(54, Integer.parseInt(data.getKey("blockX")), Integer.parseInt(data.getKey("blockY")), Integer.parseInt(data.getKey("blockZ")), (byte) 0, Bukkit.getWorld(data.getKey("world")), data.getKey("playerID"));
+                                    activeUsers.get(data.getKey("playerID")).getPlayerChests().put(bdc.convertToKey(), bdc);
+                                    chests.put(bdc.convertToKey(), bdc);
+                                }
+                            }
+                        }));
+                    }
+                }));
             }
-            result = query("SELECT playerID, itemID, itemMeta, blockID, blockX, blockY,blockZ, blockMeta, world  FROM blocks;");
-            for (ResultData data : result) {
-                activeUsers.get(data.getKey("playerID")).getPlayerBlocks().put(data.getKey("blockX") + data.getKey("blockY") + data.getKey("blockZ") + data.getKey("world"),
-                        new BlockDataCache(Integer.parseInt(data.getKey("blockID")),
-                                Integer.parseInt(data.getKey("blockX")),
-                                Integer.parseInt(data.getKey("blockY")),
-                                Integer.parseInt(data.getKey("blockZ")),
-                                Byte.parseByte(data.getKey("blockMeta")),
-                                Bukkit.getWorld(data.getKey("world")),
-                                data.getKey("playerID"),
-                                Integer.parseInt(data.getKey("itemID")),
-                                Integer.parseInt(data.getKey("itemMeta"))
-                        ));
-                blocks.put(data.getKey("blockX") + data.getKey("blockY") + data.getKey("blockZ") + data.getKey("world"),
-                        new BlockDataCache(Integer.parseInt(data.getKey("blockID")),
-                                Integer.parseInt(data.getKey("blockX")),
-                                Integer.parseInt(data.getKey("blockY")),
-                                Integer.parseInt(data.getKey("blockZ")),
-                                Byte.parseByte(data.getKey("blockMeta")),
-                                Bukkit.getWorld(data.getKey("world")),
-                                data.getKey("playerID"),
-                                Integer.parseInt(data.getKey("itemID")),
-                                Integer.parseInt(data.getKey("itemMeta"))
-                        ));
-            }
-            result = query("SELECT playerID, world, blockX, blockY, blockZ  FROM chests;");
-            for (ResultData data : result) {
-                BlockDataChest bdc = new BlockDataChest(54, Integer.parseInt(data.getKey("blockX")), Integer.parseInt(data.getKey("blockY")), Integer.parseInt(data.getKey("blockZ")), (byte) 0, Bukkit.getWorld(data.getKey("world")), data.getKey("playerID"));
-                activeUsers.get(data.getKey("playerID")).getPlayerChests().put(bdc.convertToKey(), bdc);
-                chests.put(bdc.convertToKey(), bdc);
-            }
-        } catch (SQLException ex) {
-            Logger.getLogger(DataHandler.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        }));
     }
 
     /**
      *
      */
     public static void setupDB() {
-        try {
-            switch (databaseType) {
-                case 0:
-                    query("CREATE TABLE IF NOT EXISTS players (\n"
-                            + " id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
-                            + " playerID TEXT NOT NULL ,\n"
-                            + " locX REAL NOT NULL DEFAULT 0,\n"
-                            + " locY REAL NOT NULL DEFAULT 0,\n"
-                            + " locZ REAL NOT NULL DEFAULT 0,\n"
-                            + " gameMode INTEGER NOT NULL,\n"
-                            + " inventory MEDIUMTEXT NOT NULL DEFAULT '',\n"
-                            + " armour MEDIUMTEXT NOT NULL DEFAULT '',\n"
-                            + " active INTEGER NOT NULL DEFAULT 0,"
-                            + " CONSTRAINT Play UNIQUE(playerID));");
+        switch (databaseType) {
+            case 0:
+                QueryProcessor.addQuery(new QueryData("CREATE TABLE IF NOT EXISTS players (\n"
+                        + " id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
+                        + " playerID TEXT NOT NULL ,\n"
+                        + " locX REAL NOT NULL DEFAULT 0,\n"
+                        + " locY REAL NOT NULL DEFAULT 0,\n"
+                        + " locZ REAL NOT NULL DEFAULT 0,\n"
+                        + " gameMode INTEGER NOT NULL,\n"
+                        + " inventory MEDIUMTEXT NOT NULL DEFAULT '',\n"
+                        + " armour MEDIUMTEXT NOT NULL DEFAULT '',\n"
+                        + " active INTEGER NOT NULL DEFAULT 0,"
+                        + " CONSTRAINT Play UNIQUE(playerID));", new QueryCallback() {
+                            public void result(List<ResultData> result) {
+                            }
+                        }));
 
-                    query("CREATE TABLE IF NOT EXISTS blocks (\n"
-                            + " id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
-                            + " playerID TEXT NOT NULL,\n"
-                            + " itemID INTEGER NOT NULL,\n"
-                            + " itemMeta MEDIUMTEXT NOT NULL,\n"
-                            + " blockID TEXT NOT NULL,\n"
-                            + " blockX INTEGER NOT NULL,\n"
-                            + " blockY INTEGER NOT NULL,\n"
-                            + " blockZ INTEGER NOT NULL,\n"
-                            + " blockMeta INTEGER NOT NULL,\n"
-                            + " world TEXT NOT NULL, "
-                            + " CONSTRAINT CON UNIQUE(blockX, blockY, blockZ, world));");
+                QueryProcessor.addQuery(new QueryData("CREATE TABLE IF NOT EXISTS blocks (\n"
+                        + " id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
+                        + " playerID TEXT NOT NULL,\n"
+                        + " itemID INTEGER NOT NULL,\n"
+                        + " itemMeta MEDIUMTEXT NOT NULL,\n"
+                        + " blockID TEXT NOT NULL,\n"
+                        + " blockX INTEGER NOT NULL,\n"
+                        + " blockY INTEGER NOT NULL,\n"
+                        + " blockZ INTEGER NOT NULL,\n"
+                        + " blockMeta INTEGER NOT NULL,\n"
+                        + " world TEXT NOT NULL, "
+                        + " CONSTRAINT CON UNIQUE(blockX, blockY, blockZ, world));", new QueryCallback() {
+                            public void result(List<ResultData> result) {
+                            }
+                        }));
 
-                    query("CREATE TABLE IF NOT EXISTS chests (\n"
-                            + " id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
-                            + " playerID TEXT NOT NULL,\n"
-                            + " world TEXT NOT NULL,\n"
-                            + " blockX INTEGER NOT NULL,\n"
-                            + " blockY INTEGER NOT NULL,\n"
-                            + " blockZ INTEGER NOT NULL, "
-                            + " CONSTRAINT CON UNIQUE(blockX, blockY, blockZ, world));");
-                    break;
-                case 9:
-                default:
-                    query("CREATE TABLE IF NOT EXISTS players (\n"
-                            + " id INT NOT NULL AUTO_INCREMENT,\n"
-                            + " playerID VARCHAR(45) NOT NULL,\n"
-                            + " locX DECIMAL NOT NULL DEFAULT 0,\n"
-                            + " locY DECIMAL NOT NULL DEFAULT 0,\n"
-                            + " locZ DECIMAL NOT NULL DEFAULT 0,\n"
-                            + " gameMode INT NOT NULL,\n"
-                            + " inventory MEDIUMTEXT NOT NULL DEFAULT '',\n"
-                            + " armour MEDIUMTEXT NOT NULL DEFAULT '',\n"
-                            + " active INT NOT NULL DEFAULT 0,\n"
-                            + " PRIMARY KEY (id),\n"
-                            + " UNIQUE INDEX id_UNIQUE (id ASC),\n"
-                            + " UNIQUE INDEX playerName_UNIQUE (playerName ASC));");
+                QueryProcessor.addQuery(new QueryData("CREATE TABLE IF NOT EXISTS chests (\n"
+                        + " id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
+                        + " playerID TEXT NOT NULL,\n"
+                        + " world TEXT NOT NULL,\n"
+                        + " blockX INTEGER NOT NULL,\n"
+                        + " blockY INTEGER NOT NULL,\n"
+                        + " blockZ INTEGER NOT NULL, "
+                        + " CONSTRAINT CON UNIQUE(blockX, blockY, blockZ, world));", new QueryCallback() {
+                            public void result(List<ResultData> result) {
+                            }
+                        }));
+                break;
+            case 9:
+            default:
+                QueryProcessor.addQuery(new QueryData("CREATE TABLE IF NOT EXISTS players (\n"
+                        + " id INT NOT NULL AUTO_INCREMENT,\n"
+                        + " playerID VARCHAR(45) NOT NULL,\n"
+                        + " locX DECIMAL NOT NULL DEFAULT 0,\n"
+                        + " locY DECIMAL NOT NULL DEFAULT 0,\n"
+                        + " locZ DECIMAL NOT NULL DEFAULT 0,\n"
+                        + " gameMode INT NOT NULL,\n"
+                        + " inventory MEDIUMTEXT,\n"
+                        + " armour MEDIUMTEXT,\n"
+                        + " active INT NOT NULL DEFAULT 0,\n"
+                        + " PRIMARY KEY (id),\n"
+                        + " UNIQUE INDEX id_UNIQUE (id ASC),\n"
+                        + " UNIQUE INDEX playerID_UNIQUE (playerID ASC));", new QueryCallback() {
+                            public void result(List<ResultData> result) {
+                            }
+                        }));
 
-                    query("CREATE TABLE IF NOT EXISTS blocks (\n"
-                            + " id INT NOT NULL AUTO_INCREMENT,\n"
-                            + " playerID VARCHAR(45) NOT NULL,\n"
-                            + " itemID INT NOT NULL,\n"
-                            + " itemMeta MEDIUMTEXT NOT NULL,\n"
-                            + " blockID INT NOT NULL,\n"
-                            + " blockX INT NOT NULL,\n"
-                            + " blockY INT NOT NULL,\n"
-                            + " blockZ INT NOT NULL,\n"
-                            + " blockMeta INT NOT NULL,\n"
-                            + " world VARCHAR(45) NOT NULL,\n"
-                            + " CONSTRAINT CON UNIQUE(blockX, blockY, blockZ, world),\n"
-                            + " PRIMARY KEY (id));");
+                QueryProcessor.addQuery(new QueryData("CREATE TABLE IF NOT EXISTS blocks (\n"
+                        + " id INT NOT NULL AUTO_INCREMENT,\n"
+                        + " playerID VARCHAR(45) NOT NULL,\n"
+                        + " itemID INT NOT NULL,\n"
+                        + " itemMeta MEDIUMTEXT NOT NULL,\n"
+                        + " blockID INT NOT NULL,\n"
+                        + " blockX INT NOT NULL,\n"
+                        + " blockY INT NOT NULL,\n"
+                        + " blockZ INT NOT NULL,\n"
+                        + " blockMeta INT NOT NULL,\n"
+                        + " world VARCHAR(45) NOT NULL,\n"
+                        + " CONSTRAINT CON UNIQUE(blockX, blockY, blockZ, world),\n"
+                        + " PRIMARY KEY (id));", new QueryCallback() {
+                            public void result(List<ResultData> result) {
+                            }
+                        }));
 
-                    query("CREATE TABLE IF NOT EXISTS chests (\n"
-                            + " id INT NOT NULL AUTO_INCREMENT,\n"
-                            + " playerID VARCHAR(45) NOT NULL,\n"
-                            + " world VARCHAR(45) NOT NULL,\n"
-                            + " blockX INT NOT NULL,\n"
-                            + " blockY INT NOT NULL,\n"
-                            + " blockZ INT NOT NULL,\n"
-                            + " CONSTRAINT CON UNIQUE(blockX, blockY, blockZ, world),\n"
-                            + " PRIMARY KEY (id));");
-            }
-        } catch (SQLException ex) {
-            Blueprint.error("Could not create needed table", ex);
+                QueryProcessor.addQuery(new QueryData("CREATE TABLE IF NOT EXISTS chests (\n"
+                        + " id INT NOT NULL AUTO_INCREMENT,\n"
+                        + " playerID VARCHAR(45) NOT NULL,\n"
+                        + " world VARCHAR(45) NOT NULL,\n"
+                        + " blockX INT NOT NULL,\n"
+                        + " blockY INT NOT NULL,\n"
+                        + " blockZ INT NOT NULL,\n"
+                        + " CONSTRAINT CON UNIQUE(blockX, blockY, blockZ, world),\n"
+                        + " PRIMARY KEY (id));", new QueryCallback() {
+                            public void result(List<ResultData> result) {
+                            }
+                        }));
         }
     }
-
-    private static List<ResultData> query(final String query) throws SQLException {
-        List<ResultData> data = new CopyOnWriteArrayList();
-        synchronized (ConfigHandler.getTheDataHub()) {
-            final Database tempDB = ConfigHandler.getTheDataHub();
-            if (tempDB.getConnection().isClosed()) {
-                if (!tempDB.open()) {
-                    Blueprint.error("Could not work with database");
-                }
-            }
-            try {
-                ResultSet result = tempDB.query(query);
-                ResultSetMetaData meta = result.getMetaData();
-                List<String> columns = new CopyOnWriteArrayList();
-                for (int i = 1; i <= meta.getColumnCount(); i++) {
-                    columns.add(meta.getColumnName(i));
-                }
-                while (result.next()) {
-                    ResultData temp = new ResultData();
-                    for (int col = 0; col < columns.size(); col++) {
-                        temp.setKey(columns.get(col), result.getString(columns.get(col)));
-                    }
-                    data.add(temp);
-                }
-                result.close();
-            } catch (SQLException ex) {
-                throw ex;
-            }
-        }
-        return data;
-    }
-
 }

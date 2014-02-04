@@ -36,8 +36,6 @@ public class ConfigHandler {
     private volatile static File greenlistConfigFile = null;
     private volatile static FileConfiguration blacklistConfig = null;
     private volatile static File blacklistConfigFile = null;
-    private volatile static FileConfiguration blocklistConfig = null;
-    private volatile static File blocklistConfigFile = null;
 
     /**
      * @return the defaultBukkitConfig

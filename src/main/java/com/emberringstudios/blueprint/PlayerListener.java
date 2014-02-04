@@ -3,6 +3,7 @@ package com.emberringstudios.blueprint;
 import java.util.List;
 import java.util.concurrent.Callable;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -28,6 +29,10 @@ import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerPickupItemEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.LazyMetadataValue;
 import org.bukkit.metadata.MetadataValue;
 
@@ -63,6 +68,7 @@ public class PlayerListener implements Listener {
                 DataHandler.removePlayerChest(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? bbe.getPlayer().getUniqueId().toString() : bbe.getPlayer().getName(), bbe.getBlock());
             }
         }
+        ScoreBoardSystem.updatePlayer(bbe.getPlayer());
     }
 
     /**
@@ -96,19 +102,30 @@ public class PlayerListener implements Listener {
      */
     @EventHandler
     public void onBlockPlace(final BlockPlaceEvent bpe) {
-        if (!bpe.isCancelled() && DataHandler.isPlayerActive(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? bpe.getPlayer().getUniqueId().toString() : bpe.getPlayer().getName()) && bpe.canBuild()) {
+        ScoreBoardSystem.updatePlayer(bpe.getPlayer());
+        if (!bpe.isCancelled() && DataHandler.isPlayerActive(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? bpe.getPlayer().getUniqueId().toString() : bpe.getPlayer().getName()) && bpe.canBuild() && PermissionChecker.canBuild(bpe.getPlayer(), bpe.getBlockPlaced().getLocation())) {
             if (ConfigHandler.getDefaultBukkitConfig().getBoolean("limits.blacklist")) {
-                if (ConfigHandler.getBlacklistConfig().getIntegerList("List Items").contains(bpe.getBlock().getTypeId()) || ConfigHandler.getBlacklistConfig().getIntegerList("List Items").contains(bpe.getItemInHand().getTypeId())) {
+                if (ConfigHandler.getBlacklistConfig().getIntegerList("List Items").contains(bpe.getBlockPlaced().getTypeId()) || ConfigHandler.getBlacklistConfig().getIntegerList("List Items").contains(bpe.getItemInHand().getTypeId())) {
                     bpe.setCancelled(true);
                     return;
                 }
             } else {
-                if (!ConfigHandler.getBlacklistConfig().getIntegerList("List Items").contains(bpe.getBlock().getTypeId()) && !ConfigHandler.getBlacklistConfig().getIntegerList("List Items").contains(bpe.getItemInHand().getTypeId())) {
+                if (!ConfigHandler.getBlacklistConfig().getIntegerList("List Items").contains(bpe.getBlockPlaced().getTypeId()) && !ConfigHandler.getBlacklistConfig().getIntegerList("List Items").contains(bpe.getItemInHand().getTypeId())) {
                     bpe.setCancelled(true);
                     return;
                 }
             }
             DataHandler.addPlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? bpe.getPlayer().getUniqueId().toString() : bpe.getPlayer().getName(), bpe.getItemInHand(), new BlockData(bpe.getBlockPlaced()));
+
+            final Block temp = bpe.getBlockPlaced();
+            final int tempId = bpe.getBlockPlaced().getTypeId();
+            Bukkit.getScheduler().runTask(Blueprint.getPlugin(), new Runnable() {
+                public void run() {
+                    if (tempId == temp.getTypeId()) {
+                        DataHandler.updateBlock(temp);
+                    }
+                }
+            });
 
             if (bpe.getBlockPlaced().getType() == Material.REDSTONE_TORCH_ON) {
                 bpe.getBlockPlaced().setType(Material.REDSTONE_TORCH_OFF);
@@ -116,6 +133,7 @@ public class PlayerListener implements Listener {
                 bpe.getPlayer().sendMessage("TNT added to blueprint");
                 bpe.setCancelled(true);
             }
+            ScoreBoardSystem.updatePlayer(bpe.getPlayer());
 //            CraftWorld cWorld = (CraftWorld) bbe.getPlayer().getWorld();
 //            EntityBlock eMeteor = new EntityBlock(cWorld.getHandle(), Block.e(bbe.getBlock().getTypeId()), vv.getBlockX(), vv.getBlockY(), vv.getBlockZ());
 //            cWorld.getHandle().addEntity(eMeteor, SpawnReason.NATURAL);
@@ -132,9 +150,9 @@ public class PlayerListener implements Listener {
 //            } catch (InvocationTargetException ex) {
 //                Logger.getLogger(PlayerListener.class.getName()).log(Level.SEVERE, null, ex);
 //            }
-            //World tempWorld = bbe.getPlayer().getWorld();
-            //tempWorld.spawnFallingBlock(localBlock.getLocation(), localBlock.getType(), localBlock.getData());
-            //bbe.getPlayer().sendBlockChange(localBlock.getLocation(), Material.BEDROCK, (byte) 0);
+//            World tempWorld = bbe.getPlayer().getWorld();
+//            tempWorld.spawnFallingBlock(localBlock.getLocation(), localBlock.getType(), localBlock.getData());
+//            bbe.getPlayer().sendBlockChange(localBlock.getLocation(), Material.BEDROCK, (byte) 0);
         }
     }
 
@@ -218,6 +236,13 @@ public class PlayerListener implements Listener {
         }
     }
 
+    @EventHandler
+    public void onPlayerPickupItem(PlayerPickupItemEvent ppie) {
+        if (DataHandler.isPlayerActive(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? ppie.getPlayer().getUniqueId().toString() : ppie.getPlayer().getName())) {
+            ppie.setCancelled(true);
+        }
+    }
+
     /**
      *
      * @param bpe
@@ -225,9 +250,7 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onPhysicsEvent(final BlockPhysicsEvent bpe) {
         if (DataHandler.isBlueprintBlock(bpe.getBlock())) {
-            if (bpe.getChangedTypeId() != 0) {
-                DataHandler.updateBlock(bpe.getBlock());
-            }
+            DataHandler.updateBlock(bpe.getBlock());
             bpe.setCancelled(true);
         }
     }
@@ -239,6 +262,7 @@ public class PlayerListener implements Listener {
      */
     @EventHandler
     public void onPlayerBucketEmpty(final PlayerBucketEmptyEvent pbee) {
+        ScoreBoardSystem.updatePlayer(pbee.getPlayer());
         if (!pbee.isCancelled() && DataHandler.isPlayerActive(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? pbee.getPlayer().getUniqueId().toString() : pbee.getPlayer().getName())) {
             if (ConfigHandler.getDefaultBukkitConfig().getBoolean("limits.blacklist")) {
                 if (ConfigHandler.getBlacklistConfig().getIntegerList("List Items").contains(pbee.getBucket().getId())) {
@@ -251,16 +275,12 @@ public class PlayerListener implements Listener {
                     return;
                 }
             }
-            Bukkit.getScheduler().runTask(Blueprint.getPlugin(), new Runnable() {
-                public void run() {
-                    final BlockData block = new BlockData(pbee.getBlockClicked().getRelative(pbee.getBlockFace()));
-                    if (DataHandler.isBlueprintBlockAtLocation(pbee.getBlockClicked().getRelative(pbee.getBlockFace()).getLocation())) {
-                        DataHandler.updatePlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? pbee.getPlayer().getUniqueId().toString() : pbee.getPlayer().getName(), block);
-                    } else {
-                        DataHandler.addPlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? pbee.getPlayer().getUniqueId().toString() : pbee.getPlayer().getName(), pbee.getBucket().getId(), 0, block);
-                    }
-                }
-            });
+            final BlockData block = new BlockData(pbee.getBlockClicked().getRelative(pbee.getBlockFace()));
+            if (DataHandler.isBlueprintBlockAtLocation(pbee.getBlockClicked().getRelative(pbee.getBlockFace()).getLocation())) {
+                DataHandler.updatePlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? pbee.getPlayer().getUniqueId().toString() : pbee.getPlayer().getName(), block);
+            } else {
+                DataHandler.addPlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? pbee.getPlayer().getUniqueId().toString() : pbee.getPlayer().getName(), new ItemStack(pbee.getBucket()), block);
+            }
         }
     }
 
@@ -270,6 +290,7 @@ public class PlayerListener implements Listener {
      */
     @EventHandler
     public void onPlayerInteract(final PlayerInteractEvent pie) {
+        ScoreBoardSystem.updatePlayer(pie.getPlayer());
         final Player player = pie.getPlayer();
         if (DataHandler.isPlayerActive(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName())) {
             if (pie.getAction() == Action.RIGHT_CLICK_BLOCK) {
@@ -352,6 +373,31 @@ public class PlayerListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerJoinEvent(PlayerJoinEvent pje) {
         if (DataHandler.isPlayerActive(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? pje.getPlayer().getUniqueId().toString() : pje.getPlayer().getName())) {
+
+            final String playerId = ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? pje.getPlayer().getUniqueId().toString() : pje.getPlayer().getPlayer().getName();
+            List<BlockData> playerChestLocations = DataHandler.getPlayerChestLocations(playerId);
+
+            boolean resCheck = false;
+            for (BlockData loc : playerChestLocations) {
+                Inventory inv;
+                if (loc.getLocation().getBlock().getState() instanceof InventoryHolder) {
+                    inv = ((InventoryHolder) loc.getLocation().getBlock().getState()).getInventory();
+                    for (ItemStack check : inv.getContents()) {
+                        if (check != null) {
+                            resCheck = true;
+                            break;
+                        }
+                    }
+                }
+                if (resCheck) {
+                    resCheck = true;
+                    break;
+                }
+            }
+            if (resCheck) {
+                pje.getPlayer().sendMessage(ChatColor.RED + "There are blocks in your resource chest" + (playerChestLocations.size() > 1 ? "s. " : ". ") + "Blocks in your resource chest will still placed even when in blueprint mode and will have to be removed manualy");
+            }
+            BlockSetter.getBlocks().addAll(DataHandler.getBlueprint(playerId, pje.getPlayer().getWorld().getName()));
             pje.getPlayer().setGameMode(GameMode.CREATIVE);
             pje.getPlayer().sendMessage("You are still in blueprint mode");
         }
