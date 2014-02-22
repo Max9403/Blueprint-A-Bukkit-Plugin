@@ -1,5 +1,12 @@
 package com.emberringstudios.blueprint;
 
+import com.emberringstudios.blueprint.queries.QueryData;
+import com.emberringstudios.blueprint.queries.ResultData;
+import com.emberringstudios.blueprint.queries.QueryCallback;
+import com.emberringstudios.blueprint.background.QueryProcessor;
+import com.emberringstudios.blueprint.blockdata.BlockDataCache;
+import com.emberringstudios.blueprint.blockdata.BlockDataChest;
+import com.emberringstudios.blueprint.blockdata.BlockData;
 import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -306,10 +313,10 @@ public class DataHandler {
         setPlayerLocation(name, place.getX(), place.getY(), place.getZ());
     }
 
-    public static void setPlayer(final String name, final double locX, final double locY, final double locZ, final String inv, final String arm, final int active, GameMode gamemode) {
+    public static void setPlayer(final String name, final double locX, final double locY, final double locZ, final String inv, final String arm, final int active, GameMode gamemode, final String world) {
         final int gameMode = gamemode.getValue();
         if (activeUsers.get(name) == null) {
-            activeUsers.put(name, new PlayerData(name, locX, locY, locZ, gameMode, inv, arm, active == 1));
+            activeUsers.put(name, new PlayerData(name, locX, locY, locZ, gameMode, inv, arm, active == 1, world));
         } else {
             PlayerData playerData = activeUsers.get(name);
             playerData.setLocX(locX);
@@ -319,12 +326,13 @@ public class DataHandler {
             playerData.setInventory(inv);
             playerData.setArmour(arm);
             playerData.setActive(active == 1);
+            playerData.setWorld(world);
             activeUsers.put(name, playerData);
         }
         QueryProcessor.addQuery(new QueryData("SELECT COUNT(*) AS Count FROM players WHERE playerID = '" + name + "';", new QueryCallback() {
             public void result(List<ResultData> result) {
                 if (Integer.parseInt(result.get(0).getKey("Count")) == 0) {
-                    QueryProcessor.addQuery(new QueryData("INSERT INTO players (playerID, locX, locY, locZ, gameMode, inventory, armour, active) VALUES ('" + name + "', " + locX + ", " + locY + ", " + locZ + ", " + gameMode + ", '" + inv + "', '" + arm + "', " + active + ");", new QueryCallback() {
+                    QueryProcessor.addQuery(new QueryData(MessageFormat.format("INSERT INTO players (playerID, locX, locY, locZ, gameMode, inventory, armour, active, world) VALUES (''{0}'', {1}, {2}, {3}, {4}, ''{5}'', ''{6}'', {7}, ''{8}'');", name, locX, locY, locZ, gameMode, inv, arm, active, world), new QueryCallback() {
                         public void result(List<ResultData> result) {
                         }
                     }) {
@@ -388,7 +396,7 @@ public class DataHandler {
      * @param name
      * @return
      */
-    public static BasicLocation getPlayerLocation(final String name) {
+    public static Location getPlayerLocation(final String name) {
         return activeUsers.get(name).getLocation();
     }
 
@@ -677,7 +685,7 @@ public class DataHandler {
      * @param name
      * @return
      */
-    public static List<BlockData> getPlayerChestLocations(final String name) {
+    public static List<BlockDataChest> getPlayerChestLocations(final String name) {
         return new ArrayList(chests.values());
     }
 
@@ -963,10 +971,10 @@ public class DataHandler {
      *
      */
     public static void setupCache() {
-        QueryProcessor.addQuery(new QueryData("SELECT playerID, locX, locY, locZ, gameMode, inventory, armour, active  FROM players;", new QueryCallback() {
+        QueryProcessor.addQuery(new QueryData("SELECT playerID, locX, locY, locZ, gameMode, inventory, armour, active, world  FROM players;", new QueryCallback() {
             public void result(List<ResultData> result) {
                 for (ResultData data : result) {
-                    activeUsers.put(data.getKey("playerID"), new PlayerData(data.getKey("playerID"), Double.parseDouble(data.getKey("locX")), Double.parseDouble(data.getKey("locY")), Double.parseDouble(data.getKey("locZ")), Integer.parseInt(data.getKey("gameMode")), data.getKey("inventory"), data.getKey("armour"), data.getKey("active").equals("1")));
+                    activeUsers.put(data.getKey("playerID"), new PlayerData(data.getKey("playerID"), Double.parseDouble(data.getKey("locX")), Double.parseDouble(data.getKey("locY")), Double.parseDouble(data.getKey("locZ")), Integer.parseInt(data.getKey("gameMode")), data.getKey("inventory"), data.getKey("armour"), data.getKey("active").equals("1"), data.getKey("world")));
                 }
                 QueryProcessor.addQuery(new QueryData("SELECT playerID, itemID, itemMeta, blockID, blockX, blockY,blockZ, blockMeta, world  FROM blocks;", new QueryCallback() {
                     public void result(List<ResultData> result) {
@@ -1024,11 +1032,32 @@ public class DataHandler {
                         + " gameMode INTEGER NOT NULL,\n"
                         + " inventory MEDIUMTEXT NOT NULL DEFAULT '',\n"
                         + " armour MEDIUMTEXT NOT NULL DEFAULT '',\n"
-                        + " active INTEGER NOT NULL DEFAULT 0,"
+                        + " active INTEGER NOT NULL DEFAULT 0,\n"
+                        + " world MEDIUMTEXT NOT NULL,\n"
                         + " CONSTRAINT Play UNIQUE(playerID));", new QueryCallback() {
                             public void result(List<ResultData> result) {
                             }
                         }));
+
+                QueryProcessor.addQuery(new QueryData("SELECT world FROM players;", new QueryCallback() {
+                    public void result(List<ResultData> result) {
+                    }
+                }) {
+                    @Override
+                    public boolean runError(Exception er) {
+                        QueryProcessor.addQuery(new QueryData("ALTER TABLE players ADD COLUMN world MEDIUMTEXT NOT NULL AFTER active;", new QueryCallback() {
+                            public void result(List<ResultData> result) {
+                            }
+                        }) {
+                            @Override
+                            public boolean runError(Exception er) {
+                                Blueprint.info("Couldn't alter table, if the plugin misbehaves you might have to delete the database (or at least the player table)");
+                                return false;
+                            }
+                        });
+                        return false;
+                    }
+                });
 
                 QueryProcessor.addQuery(new QueryData("CREATE TABLE IF NOT EXISTS blocks (\n"
                         + " id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
@@ -1042,9 +1071,11 @@ public class DataHandler {
                         + " blockMeta INTEGER NOT NULL,\n"
                         + " world TEXT NOT NULL, "
                         + " CONSTRAINT CON UNIQUE(blockX, blockY, blockZ, world));", new QueryCallback() {
+
                             public void result(List<ResultData> result) {
                             }
-                        }));
+                        }
+                ));
 
                 QueryProcessor.addQuery(new QueryData("CREATE TABLE IF NOT EXISTS chests (\n"
                         + " id INTEGER PRIMARY KEY AUTOINCREMENT,\n"
@@ -1058,6 +1089,7 @@ public class DataHandler {
                             }
                         }));
                 break;
+
             case 9:
             default:
                 QueryProcessor.addQuery(new QueryData("CREATE TABLE IF NOT EXISTS players (\n"
@@ -1070,12 +1102,33 @@ public class DataHandler {
                         + " inventory MEDIUMTEXT,\n"
                         + " armour MEDIUMTEXT,\n"
                         + " active INT NOT NULL DEFAULT 0,\n"
+                        + " world MEDIUMTEXT NOT NULL,\n"
                         + " PRIMARY KEY (id),\n"
                         + " UNIQUE INDEX id_UNIQUE (id ASC),\n"
                         + " UNIQUE INDEX playerID_UNIQUE (playerID ASC));", new QueryCallback() {
                             public void result(List<ResultData> result) {
                             }
                         }));
+
+                QueryProcessor.addQuery(new QueryData("SELECT world FROM players;", new QueryCallback() {
+                    public void result(List<ResultData> result) {
+                    }
+                }) {
+                    @Override
+                    public boolean runError(Exception er) {
+                        QueryProcessor.addQuery(new QueryData("ALTER TABLE players ADD COLUMN world MEDIUMTEXT NOT NULL AFTER active;", new QueryCallback() {
+                            public void result(List<ResultData> result) {
+                            }
+                        }) {
+                            @Override
+                            public boolean runError(Exception er) {
+                                Blueprint.info("Couldn't alter table, if the plugin misbehaves you might have to delete the database (or at least the player table)");
+                                return false;
+                            }
+                        });
+                        return false;
+                    }
+                });
 
                 QueryProcessor.addQuery(new QueryData("CREATE TABLE IF NOT EXISTS blocks (\n"
                         + " id INT NOT NULL AUTO_INCREMENT,\n"
@@ -1090,9 +1143,11 @@ public class DataHandler {
                         + " world VARCHAR(45) NOT NULL,\n"
                         + " CONSTRAINT CON UNIQUE(blockX, blockY, blockZ, world),\n"
                         + " PRIMARY KEY (id));", new QueryCallback() {
+
                             public void result(List<ResultData> result) {
                             }
-                        }));
+                        })
+                );
 
                 QueryProcessor.addQuery(new QueryData("CREATE TABLE IF NOT EXISTS chests (\n"
                         + " id INT NOT NULL AUTO_INCREMENT,\n"

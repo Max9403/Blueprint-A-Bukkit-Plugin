@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.emberringstudios.blueprint;
+package com.emberringstudios.blueprint.blockdata;
 
 import org.bukkit.World;
 import org.bukkit.block.Block;

@@ -1,5 +1,8 @@
 package com.emberringstudios.blueprint;
 
+import com.emberringstudios.blueprint.background.QueryProcessor;
+import com.emberringstudios.blueprint.background.BlockSetter;
+import com.emberringstudios.blueprint.background.BlueprintBuild;
 import java.util.Arrays;
 import java.util.logging.Level;
 import org.bukkit.Bukkit;
@@ -76,7 +79,7 @@ public class Blueprint extends JavaPlugin {
     public void onEnable() {
         plugin = this;
         if (!this.getServer().getPluginManager().isPluginEnabled("SQLibrary")) {
-            if (false && this.getConfig().getBoolean("use.downloads", true)) {
+            if (this.getConfig().getBoolean("use.downloads", true)) {
                 info("Downloadind dependecy: SQLibrary");
                 if (PluginDownloader.downloadPlugin("43840")) {
                     info("Loaded SQLibrary");
@@ -85,7 +88,7 @@ public class Blueprint extends JavaPlugin {
                 error("Please download and install SQLibrary, a link can be found on my plugins page");
             }
         }
-
+        
         setConfigDefaults();
         ConfigHandler.getDefaultBukkitConfig().options().copyDefaults(true);
         setGreenlistDefaults();
@@ -120,6 +123,7 @@ public class Blueprint extends JavaPlugin {
     private void setConfigDefaults() {
         ConfigHandler.getDefaultBukkitConfig().addDefault("use.UUIDs", true);
         ConfigHandler.getDefaultBukkitConfig().addDefault("use.downloads", true);
+        ConfigHandler.getDefaultBukkitConfig().addDefault("limits.disable signs", true);
         ConfigHandler.getDefaultBukkitConfig().addDefault("database.type", 0);
         ConfigHandler.getDefaultBukkitConfig().addDefault("database.hostname", "localhost");
         ConfigHandler.getDefaultBukkitConfig().addDefault("database.port", 3306);
@@ -129,6 +133,8 @@ public class Blueprint extends JavaPlugin {
         ConfigHandler.getDefaultBukkitConfig().addDefault("limits.blocks at a time", 20);
         ConfigHandler.getDefaultBukkitConfig().addDefault("limits.time to check", 60);
         ConfigHandler.getDefaultBukkitConfig().addDefault("limits.blacklist", true);
+        ConfigHandler.getDefaultBukkitConfig().addDefault("limits.disable signs", true);
+        ConfigHandler.getDefaultBukkitConfig().addDefault("limits.combat cooldown", 200);
     }
 
     /**

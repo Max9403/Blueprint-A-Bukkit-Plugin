@@ -1,4 +1,4 @@
-package com.emberringstudios.blueprint;
+package com.emberringstudios.blueprint.queries;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author Max9403 <Max9403@live.com>
  */
-class ResultData {
+public class ResultData {
 
     private final ConcurrentHashMap<String, String> data = new ConcurrentHashMap();
 

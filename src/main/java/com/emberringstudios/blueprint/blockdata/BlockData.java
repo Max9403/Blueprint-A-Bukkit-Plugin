@@ -1,5 +1,6 @@
-package com.emberringstudios.blueprint;
+package com.emberringstudios.blueprint.blockdata;
 
+import com.emberringstudios.blueprint.NoWorldGivenException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.bukkit.Location;
@@ -72,6 +73,48 @@ public class BlockData {
         this.locZ = blockData.getZ();
         this.data = blockData.getData();
         this.blockWorld = blockData.getBlockWorld();
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 47 * hash + this.type;
+        hash = 47 * hash + this.locX;
+        hash = 47 * hash + this.locY;
+        hash = 47 * hash + this.locZ;
+        hash = 47 * hash + this.data;
+        hash = 47 * hash + (this.blockWorld != null ? this.blockWorld.hashCode() : 0);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final BlockData other = (BlockData) obj;
+        if (this.type != other.type) {
+            return false;
+        }
+        if (this.locX != other.locX) {
+            return false;
+        }
+        if (this.locY != other.locY) {
+            return false;
+        }
+        if (this.locZ != other.locZ) {
+            return false;
+        }
+        if (this.data != other.data) {
+            return false;
+        }
+        if (this.blockWorld != other.blockWorld && (this.blockWorld == null || !this.blockWorld.equals(other.blockWorld))) {
+            return false;
+        }
+        return true;
     }
 
     /**

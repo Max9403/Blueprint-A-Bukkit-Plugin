@@ -100,7 +100,7 @@ public class ConfigHandler {
                     theDataHub = new PostgreSQL(Logger.getLogger("Minecraft"), "[Blueprint]", localConfig.getString("database.hostname"), localConfig.getInt("database.port"), localConfig.getString("database.database"), localConfig.getString("database.user"), localConfig.getString("database.password"));
                     break;
                 default:
-                    theDataHub = new SQLite(Logger.getLogger("Minecraft"), "[Blueprint]", Blueprint.getPlugin().getDataFolder() + "/data", "users");
+                    theDataHub = new SQLite(Logger.getLogger("Minecraft"), "[Blueprint]", Blueprint.getPlugin().getDataFolder() + "/data", localConfig.getString("database.database"));
                     break;
             }
             DataHandler.setDatabaseType(localConfig.getInt("database.type", 0));

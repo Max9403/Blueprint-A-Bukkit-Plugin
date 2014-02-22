@@ -22,76 +22,50 @@ import org.bukkit.scoreboard.ScoreboardManager;
  */
 public class ScoreBoardSystem {
 
-    private static final ConcurrentHashMap<Player, Scoreboard> scoreBoards = new ConcurrentHashMap();
-
     public static void addPlayer(Player player) {
-        if (!scoreBoards.contains(player)) {
-            final String playerId = ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getPlayer().getName();
-            List<ItemStack> blueprint = Commands.sortItemStack(DataHandler.getBlueprintItemTypes(playerId));
-            ScoreboardManager manager = Bukkit.getScoreboardManager();
-            Scoreboard board = manager.getNewScoreboard();
+        final String playerId = ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getPlayer().getName();
+        List<ItemStack> blueprint = Commands.sortItemStack(DataHandler.getBlueprintItemTypes(playerId));
+        ScoreboardManager manager = Bukkit.getScoreboardManager();
+        Scoreboard board = manager.getNewScoreboard();
 
-            Objective objective = board.registerNewObjective(("materialsneeded" + playerId).substring(0, 16), "dummy");
-            objective.setDisplaySlot(DisplaySlot.SIDEBAR);
-            objective.setDisplayName("Materials Needed:");
-            int count = 1;
-            for (ItemStack data : blueprint) {
-                Score score;
-                if (count++ < 16) {
-                    if (ItemResolver.getName(new ItemTemp(data)).length() > 16) {
-                        score = objective.getScore(Bukkit.getOfflinePlayer(ItemResolver.getName(new ItemTemp(data)).substring(0, 12) + "..."));
-                    } else {
-                        score = objective.getScore(Bukkit.getOfflinePlayer(ItemResolver.getName(new ItemTemp(data))));
-                    }
-                    score.setScore(data.getAmount());
+        Objective objective = board.registerNewObjective(("materialsneeded" + playerId).substring(0, 16), "dummy");
+        objective.setDisplaySlot(DisplaySlot.SIDEBAR);
+        objective.setDisplayName("Materials Needed:");
+        int count = 1;
+        for (ItemStack data : blueprint) {
+            Score score;
+            if (count++ < 16) {
+                if (ItemResolver.getName(new ItemTemp(data)).length() > 16) {
+                    score = objective.getScore(Bukkit.getOfflinePlayer(ItemResolver.getName(new ItemTemp(data)).substring(0, 12) + "..."));
+                } else {
+                    score = objective.getScore(Bukkit.getOfflinePlayer(ItemResolver.getName(new ItemTemp(data))));
                 }
+                score.setScore(data.getAmount());
             }
-            scoreBoards.put(player, board);
-            player.setScoreboard(board);
-            if (count > 15) {
-                player.sendMessage("To many blocks to list in scoreboard");
-            }
-        } else {
-            updatePlayer(player);
+        }
+        player.setScoreboard(board);
+        if (count > 15) {
+            player.sendMessage("To many blocks to list in scoreboard");
         }
     }
 
     public static void updatePlayer(Player player) {
-        if (scoreBoards.containsKey(player)) {
-            final String playerId = ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getPlayer().getName();
-            List<ItemStack> blueprint = Commands.sortItemStack(DataHandler.getBlueprintItemTypes(playerId));
-            Scoreboard board = scoreBoards.get(player);
-
-            if (blueprint.size() > 0) {
-                Objective objective = board.getObjective(("materialsneeded" + playerId).substring(0, 16));
-                objective.setDisplaySlot(DisplaySlot.SIDEBAR);
-                objective.setDisplayName("Materials Needed:");
-                int count = 1;
-                for (ItemStack data : blueprint) {
-                    Score score;
-                    if (count++ < 16) {
-                        if (ItemResolver.getName(new ItemTemp(data)).length() > 16) {
-                            score = objective.getScore(Bukkit.getOfflinePlayer(ItemResolver.getName(new ItemTemp(data)).substring(0, 12) + "..."));
-                        } else {
-                            score = objective.getScore(Bukkit.getOfflinePlayer(ItemResolver.getName(new ItemTemp(data))));
-                        }
-                        score.setScore(data.getAmount());
-                    }
-                }
-            }
-            scoreBoards.put(player, board);
-            player.setScoreboard(board);
+        final String playerId = ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getPlayer().getName();
+        if (player.getScoreboard().getObjective(("materialsneeded" + playerId).substring(0, 16)) != null) {
+            addPlayer(player);
         }
     }
 
     public static void removePlayer(Player player) {
-        player.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
-        scoreBoards.remove(player);
+        final String playerId = ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getPlayer().getName();
+        if (player.getScoreboard().getObjective(("materialsneeded" + playerId).substring(0, 16)) != null) {
+            player.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
+        }
     }
 
     public static void togglePlayer(Player player) {
-
-        if (scoreBoards.containsKey(player)) {
+        final String playerId = ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getPlayer().getName();
+        if (player.getScoreboard().getObjective(("materialsneeded" + playerId).substring(0, 16)) != null) {
             removePlayer(player);
         } else {
             addPlayer(player);

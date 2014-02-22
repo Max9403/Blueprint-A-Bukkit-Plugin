@@ -1,6 +1,6 @@
 name: Blueprint Builder
 main: com.emberringstudios.blueprint.Blueprint
-version: 1.2.1
+version: 1.2.3
 author: Max9403
 description: Allows you to create a blueprint of what you want to build and build it automatically when you have collected all the materials for it
 softdepend: [SQLibrary]
@@ -19,6 +19,12 @@ commands:
         permission: blueprint.mark
         permission-message: Seems like amnesia kicked in and you can't remember what you were doing (don't have permision to mark resource chest)
         aliases: [mrc]
+    unmarkresourcechest:
+        description: Unmark a chest that contain resources needed for building
+        usage: /<command>
+        permission: blueprint.unmark
+        permission-message: Seems like amnesia kicked in and you can't remember what you were doing (don't have permision to mark resource chest)
+        aliases: [umrc]
     listresources:
         description: Shows all the matterials users' construction needs
         usage: /<command>
@@ -38,6 +44,7 @@ permissions:
         children:
             blueprint.switch: true
             blueprint.mark: true
+            blueprint.unmark: true
             blueprint.listresources: true 
             blueprint.listresources.others: true
     blueprint.switch:
@@ -45,6 +52,9 @@ permissions:
         default: true
     blueprint.mark:
         description: Allows to set a resource chest
+        default: true
+    blueprint.unmark:
+        description: Allows to remove a resource chest using a command
         default: true
     blueprint.listresources.others: 
         description: Allows to show others needed resources

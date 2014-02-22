@@ -3,8 +3,12 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.emberringstudios.blueprint;
+package com.emberringstudios.blueprint.background;
 
+import com.emberringstudios.blueprint.Blueprint;
+import com.emberringstudios.blueprint.ConfigHandler;
+import com.emberringstudios.blueprint.queries.QueryData;
+import com.emberringstudios.blueprint.queries.ResultData;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;

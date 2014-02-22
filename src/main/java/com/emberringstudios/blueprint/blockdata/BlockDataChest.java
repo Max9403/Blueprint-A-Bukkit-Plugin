@@ -3,8 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-
-package com.emberringstudios.blueprint;
+package com.emberringstudios.blueprint.blockdata;
 
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -13,8 +12,31 @@ import org.bukkit.block.Block;
  *
  * @author Max9403 <Max9403@live.com>
  */
-public class BlockDataChest extends BlockData{
+public class BlockDataChest extends BlockData {
+
     private String owner;
+
+    @Override
+    public int hashCode() {
+        int hash = 5;
+        hash = 43 * hash + (this.owner != null ? this.owner.hashCode() : 0);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final BlockDataChest other = (BlockDataChest) obj;
+        if ((this.owner == null) ? (other.owner != null) : !this.owner.equals(other.owner)) {
+            return false;
+        }
+        return true;
+    }
 
     /**
      *
@@ -31,7 +53,7 @@ public class BlockDataChest extends BlockData{
         this.owner = owner;
     }
 
-    BlockDataChest(Block placedBlock, String name) {
+    public BlockDataChest(Block placedBlock, String name) {
         super(placedBlock);
         this.owner = name;
     }
@@ -49,5 +71,5 @@ public class BlockDataChest extends BlockData{
     public void setOwner(String owner) {
         this.owner = owner;
     }
-    
+
 }

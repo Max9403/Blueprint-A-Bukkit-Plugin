@@ -5,7 +5,11 @@
  */
 package com.emberringstudios.blueprint;
 
+import com.emberringstudios.blueprint.blockdata.BlockDataCache;
+import com.emberringstudios.blueprint.blockdata.BlockDataChest;
 import java.util.concurrent.ConcurrentHashMap;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
 
 /**
  *
@@ -17,6 +21,7 @@ public class PlayerData {
     private int gameMode;
     private String inv;
     private String armour;
+    private String world;
     private boolean active;
     private ConcurrentHashMap<String, BlockDataCache> playerBlocks = new ConcurrentHashMap();
     private ConcurrentHashMap<String, BlockDataChest> playerChests = new ConcurrentHashMap();
@@ -43,7 +48,7 @@ public class PlayerData {
      * @param armour
      * @param active
      */
-    public PlayerData(final String playerID, final double locX, final double locY, final double locZ, final int gameMode, final String inv, final String armour, final boolean active) {
+    public PlayerData(final String playerID, final double locX, final double locY, final double locZ, final int gameMode, final String inv, final String armour, final boolean active, final String world) {
         this.playerID = playerID;
         this.locX = locX;
         this.locY = locY;
@@ -52,6 +57,7 @@ public class PlayerData {
         this.inv = inv;
         this.armour = armour;
         this.active = active;
+        this.world = world;
     }
 
     /**
@@ -87,6 +93,13 @@ public class PlayerData {
      */
     public String getArmour() {
         return armour;
+    }
+
+    /**
+     * @return the world
+     */
+    public String getWorld() {
+        return world;
     }
 
     /**
@@ -142,8 +155,8 @@ public class PlayerData {
      *
      * @return
      */
-    public BasicLocation getLocation() {
-        return new BasicLocation(locX, locY, locZ);
+    public Location getLocation() {
+        return new Location(Bukkit.getWorld(world), locX, locY, locZ);
     }
 
     /**
@@ -193,5 +206,12 @@ public class PlayerData {
      */
     public void setPlayerChests(ConcurrentHashMap<String, BlockDataChest> playerChests) {
         this.playerChests = playerChests;
+    }
+
+    /**
+     * @param world the world to set
+     */
+    public void setWorld(String world) {
+        this.world = world;
     }
 }

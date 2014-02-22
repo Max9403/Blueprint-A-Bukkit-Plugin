@@ -1,7 +1,11 @@
 package com.emberringstudios.blueprint;
 
+import com.emberringstudios.blueprint.background.BlockSetter;
+import com.emberringstudios.blueprint.blockdata.BlockData;
+import com.emberringstudios.blueprint.blockdata.BlockDataChest;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
@@ -23,11 +27,13 @@ import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.entity.EntityDamageByBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.inventory.Inventory;
@@ -43,6 +49,37 @@ import org.bukkit.metadata.MetadataValue;
 public class PlayerListener implements Listener {
 
     private final static List<Integer> ignoreList = ConfigHandler.getGreenlistConfig().getIntegerList("Greenlist Items");
+    private final static List<Player> damaged = new CopyOnWriteArrayList();
+
+    /**
+     * @return the damaged
+     */
+    public static List<Player> getDamaged() {
+        return damaged;
+    }
+
+    public static boolean isPlayerDamamged(Player player) {
+        return damaged.contains(player);
+    }
+
+    @EventHandler
+    public void onPlayerItemConsumeEvent(final PlayerItemConsumeEvent pice) {
+        final String playerId = ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? pice.getPlayer().getUniqueId().toString() : pice.getPlayer().getPlayer().getName();
+        if (DataHandler.isPlayerActive(playerId)) {
+            pice.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onProjectileLaunch(final ProjectileLaunchEvent ple) {
+        if (ple.getEntity().getShooter() instanceof Player) {
+            final Player player = (Player) ple.getEntity().getShooter();
+            final String playerId = ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getPlayer().getName();
+            if (DataHandler.isPlayerActive(playerId)) {
+                ple.setCancelled(true);
+            }
+        }
+    }
 
     /**
      *
@@ -174,14 +211,39 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onEntityDamage(EntityDamageEvent edea) {
         if (edea instanceof EntityDamageByEntityEvent) {
-            EntityDamageByEntityEvent ede = (EntityDamageByEntityEvent) edea;
+            final EntityDamageByEntityEvent ede = (EntityDamageByEntityEvent) edea;
             if (ede.getDamager() instanceof Player) {
                 Player player = (Player) ede.getDamager();
                 {
                     if (DataHandler.isPlayerActive(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName())) {
                         ede.setCancelled(true);
+                    } else {
+                        damaged.add((Player) ede.getEntity());
+                        Bukkit.getScheduler().runTaskLaterAsynchronously(Blueprint.getPlugin(), new Runnable() {
+
+                            public void run() {
+                                getDamaged().remove((Player) ede.getEntity());
+                            }
+                        }, ConfigHandler.getDefaultBukkitConfig().getInt("limits.combat cooldown", 200));
+
+                        damaged.add((Player) ede.getDamager());
+                        Bukkit.getScheduler().runTaskLaterAsynchronously(Blueprint.getPlugin(), new Runnable() {
+
+                            public void run() {
+                                getDamaged().remove((Player) ede.getDamager());
+                            }
+                        }, ConfigHandler.getDefaultBukkitConfig().getInt("limits.combat cooldown", 200));
                     }
                 }
+            }
+            if (!ede.isCancelled() && ede.getEntity() instanceof Player) {
+                damaged.add((Player) ede.getEntity());
+                Bukkit.getScheduler().runTaskLaterAsynchronously(Blueprint.getPlugin(), new Runnable() {
+
+                    public void run() {
+                        getDamaged().remove((Player) ede.getEntity());
+                    }
+                }, ConfigHandler.getDefaultBukkitConfig().getInt("limits.combat cooldown", 200));
             }
         } else if (edea instanceof EntityDamageByBlockEvent) {
             EntityDamageByBlockEvent ede = (EntityDamageByBlockEvent) edea;
@@ -297,6 +359,12 @@ public class PlayerListener implements Listener {
                 if (pie.getItem() != null && !pie.getItem().getType().isBlock() && (pie.getItem().getType() == Material.BOW || pie.getItem().getType() == Material.MONSTER_EGG || pie.getItem().getType() == Material.MONSTER_EGGS || pie.getItem().getType() == Material.FLINT_AND_STEEL)) {
                     pie.setCancelled(true);
                 }
+                if (pie.getClickedBlock().getType() == Material.SIGN || pie.getClickedBlock().getType() == Material.SIGN_POST || pie.getClickedBlock().getType() == Material.WALL_SIGN) {
+                    if (ConfigHandler.getDefaultBukkitConfig().getBoolean("limits.disable signs", true)) {
+                        pie.setCancelled(true);
+                        return;
+                    }
+                }
                 if (DataHandler.checkPlayerBlockNoData(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName(), pie.getClickedBlock())) {
                     DataHandler.updatePlayerBlock(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName(), pie.getClickedBlock());
                     if (player.hasMetadata("inMarkMode")) {
@@ -330,6 +398,26 @@ public class PlayerListener implements Listener {
                                 }
                             }
                         }
+                    } else if (player.hasMetadata("inUnmarkMode")) {
+                        for (MetadataValue meta : player.getMetadata("inUnmarkMode")) {
+                            if (meta.getOwningPlugin() == Blueprint.getPlugin()) {
+                                if (meta.asBoolean()) {
+                                    if (DataHandler.isPlayerChest(pie.getClickedBlock()) && DataHandler.getPlayerChestLocations(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName()).contains(new BlockDataChest(pie.getClickedBlock(), ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName()))) {
+                                        DataHandler.removePlayerChest(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName(), pie.getClickedBlock());
+                                        player.setMetadata("inUnmarkMode", new LazyMetadataValue(Blueprint.getPlugin(), new Callable() {
+
+                                            public Object call() throws Exception {
+                                                return false;
+                                            }
+                                        }));
+                                        player.sendMessage("Resource chest unmarked");
+                                    } else {
+                                        player.sendMessage("This chest is not marked");
+                                    }
+                                    break;
+                                }
+                            }
+                        }
                     }
                 }
             } else if (pie.getAction() == Action.RIGHT_CLICK_AIR) {
@@ -354,8 +442,32 @@ public class PlayerListener implements Listener {
                                         }
                                     }));
                                     player.sendMessage("Resource chest marked");
+                                    pie.setCancelled(true);
                                 } else {
                                     player.sendMessage("This chest is already marked");
+                                    pie.setCancelled(true);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                } else if (player.hasMetadata("inUnmarkMode")) {
+                    for (MetadataValue meta : player.getMetadata("inUnmarkMode")) {
+                        if (meta.getOwningPlugin() == Blueprint.getPlugin()) {
+                            if (meta.asBoolean()) {
+                                if (DataHandler.isPlayerChest(pie.getClickedBlock()) && DataHandler.getPlayerChestLocations(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName()).contains(new BlockDataChest(pie.getClickedBlock(), ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName()))) {
+                                    DataHandler.removePlayerChest(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName(), pie.getClickedBlock());
+                                    player.setMetadata("inUnmarkMode", new LazyMetadataValue(Blueprint.getPlugin(), new Callable() {
+
+                                        public Object call() throws Exception {
+                                            return false;
+                                        }
+                                    }));
+                                    player.sendMessage("Resource chest unmarked");
+                                    pie.setCancelled(true);
+                                } else {
+                                    player.sendMessage("This chest is not marked");
+                                    pie.setCancelled(true);
                                 }
                                 break;
                             }
@@ -375,7 +487,7 @@ public class PlayerListener implements Listener {
         if (DataHandler.isPlayerActive(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? pje.getPlayer().getUniqueId().toString() : pje.getPlayer().getName())) {
 
             final String playerId = ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? pje.getPlayer().getUniqueId().toString() : pje.getPlayer().getPlayer().getName();
-            List<BlockData> playerChestLocations = DataHandler.getPlayerChestLocations(playerId);
+            List<BlockDataChest> playerChestLocations = DataHandler.getPlayerChestLocations(playerId);
 
             boolean resCheck = false;
             for (BlockData loc : playerChestLocations) {

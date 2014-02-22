@@ -3,8 +3,13 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.emberringstudios.blueprint;
+package com.emberringstudios.blueprint.background;
 
+import com.emberringstudios.blueprint.Commands;
+import com.emberringstudios.blueprint.DataHandler;
+import com.emberringstudios.blueprint.NoWorldGivenException;
+import com.emberringstudios.blueprint.blockdata.BlockDataList;
+import com.emberringstudios.blueprint.blockdata.BlockData;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -36,13 +41,17 @@ public class BlockSetter implements Runnable {
     public void run() {
         for (BlockData thatData : blocks) {
             if (thatData.getType() == 46) {
+                blocks.remove(thatData);
                 continue;
             }
             try {
                 if (thatData.equalToBlock(thatData.getBlockWorld().getBlockAt(thatData.getX(), thatData.getY(), thatData.getZ()))) {
                     DataHandler.removeBlueprintBlock(thatData, thatData.getBlockWorld().getName());
+                } else if (thatData.getBlockWorld().getBlockAt(thatData.getX(), thatData.getY(), thatData.getZ()).isEmpty()) {
+                    thatData.loadBlockIntoWorld();
+                } else if (thatData.getType() == 0 && DataHandler.isBlueprintBlock(thatData.getLocation().getBlock())) {
+                    thatData.loadBlockIntoWorld();
                 }
-                thatData.loadBlockIntoWorld();
                 blocks.remove(thatData);
             } catch (NoWorldGivenException ex) {
                 Logger.getLogger(Commands.class.getName()).log(Level.SEVERE, null, ex);
