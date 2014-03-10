@@ -1,6 +1,6 @@
 name: Blueprint Builder
 main: com.emberringstudios.blueprint.Blueprint
-version: 1.2.3
+version: 1.3.6
 author: Max9403
 description: Allows you to create a blueprint of what you want to build and build it automatically when you have collected all the materials for it
 softdepend: [SQLibrary]
@@ -46,16 +46,31 @@ permissions:
             blueprint.mark: true
             blueprint.unmark: true
             blueprint.listresources: true 
+            blueprint.switch.other: true
+            blueprint.mark.other: true
+            blueprint.unmark.other: true
             blueprint.listresources.others: true
-    blueprint.switch:
-        description: Allows to switch to blueprint mode
-        default: true
-    blueprint.mark:
-        description: Allows to set a resource chest
-        default: true
-    blueprint.unmark:
-        description: Allows to remove a resource chest using a command
-        default: true
+    blueprint.switch.others:
+        description: Allows to switch others to blueprint mode
+        default: false
+        children:
+            blueprint.switch:
+                description: Allows to switch to blueprint mode
+                default: true
+    blueprint.mark.others:
+        description: Allows to set a resource chest for someone else
+        default: false
+        children:
+            blueprint.mark:
+                description: Allows to set a resource chest
+                default: true
+    blueprint.unmark.others:
+        description: Allows to remove a resource chest from someone else
+        default: false
+        children:
+            blueprint.unmark:
+                description: Allows to remove a resource chest using a command
+                default: true
     blueprint.listresources.others: 
         description: Allows to show others needed resources
         default: false
@@ -63,6 +78,10 @@ permissions:
             blueprint.listresources:
                 description: Allows to show your needed resources
                 default: true
-    blueprint.resourceboard:
-        description: Allows to show your needed resources in scoreboard
-        default: true
+    blueprint.resourceboard.others:
+        description: Allows to show others needed resources in scoreboard
+        default: false
+        children:
+            blueprint.resourceboard:
+                description: Allows to show your needed resources in scoreboard
+                default: true

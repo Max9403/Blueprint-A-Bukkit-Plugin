@@ -12,7 +12,10 @@ import java.util.Map;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.entity.Player;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -65,13 +68,9 @@ public class BlueprintBuild implements Runnable {
                                         return;
                                     }
                                     if (blocks.get(counter).equalToBlock(blocks.get(counter).getLocation().getBlock()) || blocks.get(counter).getLocation().getBlock().isEmpty()) {
-                                        if (temp.getAmount() > 1) {
-                                            temp.setAmount(temp.getAmount() - 1);
-                                        } else {
-                                            inv.remove(temp);
-                                        }
-                                        loc.getLocation().getBlock().getState().update(true);
-                                        DataHandler.removePlayerBlock(name, blocks.get(counter), loc.getLocation().getBlock().getWorld().getName());
+
+                                        BlockState tempBlock = blocks.get(counter).updateBlockState(blocks.get(counter).getLocation().getBlock().getState());
+
                                         if (blocks.get(counter).getType() == Material.REDSTONE_TORCH_ON.getId()) {
                                             blocks.get(counter).setType(Material.REDSTONE_TORCH_OFF.getId());
                                         }
@@ -80,6 +79,36 @@ public class BlueprintBuild implements Runnable {
                                         } catch (NoWorldGivenException ex) {
                                             blocks.get(counter).loadBlockIntoWorld(loc.getLocation().getBlock().getWorld());
                                         }
+                                        if (!ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true)) {
+
+                                            BlockPlaceEvent event = new BlockPlaceEvent(blocks.get(counter).getLocation().getBlock(), tempBlock, blocks.get(counter).getLocation().getBlock(), new ItemStack(blocks.get(counter).getLocation().getBlock().getType()), Bukkit.getPlayerExact(name), true);
+
+                                            Bukkit.getServer().getPluginManager().callEvent(event);
+                                            if (!event.isCancelled()) {
+                                                tempBlock.update();
+                                            }
+                                        } else {
+                                            for (Player player : Bukkit.getServer().getOnlinePlayers()) {
+                                                if (player.getUniqueId().toString().equalsIgnoreCase(name)) {
+                                                    ScoreBoardSystem.updatePlayer(player);
+                                                    BlockPlaceEvent event;
+                                                    event = new BlockPlaceEvent(blocks.get(counter).getLocation().getBlock(), blocks.get(counter).getLocation().getBlock().getState(), blocks.get(counter).getLocation().getBlock(), new ItemStack(blocks.get(counter).getLocation().getBlock().getType()), player, true);
+
+                                                    Bukkit.getServer().getPluginManager().callEvent(event);
+                                                    if (!event.isCancelled()) {
+                                                        tempBlock.update();
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        if (temp.getAmount() > 1) {
+                                            temp.setAmount(temp.getAmount() - 1);
+                                        } else {
+                                            inv.remove(temp);
+                                        }
+                                        loc.getLocation().getBlock().getState().update(true);
+                                        DataHandler.removePlayerBlock(name, blocks.get(counter), loc.getLocation().getBlock().getWorld().getName());
                                         placedBlocks++;
                                         if (!ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true)) {
                                             ScoreBoardSystem.updatePlayer(Bukkit.getPlayerExact(name));

@@ -22,8 +22,18 @@ import org.bukkit.scoreboard.ScoreboardManager;
  */
 public class ScoreBoardSystem {
 
+    private static ConcurrentHashMap<Player, Player> players = new ConcurrentHashMap();
+
     public static void addPlayer(Player player) {
-        final String playerId = ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getPlayer().getName();
+        addPlayer(player, player);
+    }
+
+    public static void addPlayer(Player player, Player player2) {
+        if (player2 == null) {
+            player2 = players.get(player) == null ? player : players.get(player);
+        }
+        players.put(player, player2);
+        final String playerId = ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player2.getUniqueId().toString() : player2.getPlayer().getName();
         List<ItemStack> blueprint = Commands.sortItemStack(DataHandler.getBlueprintItemTypes(playerId));
         ScoreboardManager manager = Bukkit.getScoreboardManager();
         Scoreboard board = manager.getNewScoreboard();
@@ -47,12 +57,15 @@ public class ScoreBoardSystem {
         if (count > 15) {
             player.sendMessage("To many blocks to list in scoreboard");
         }
+        if (blueprint.size() <= 0) {
+            player.sendMessage((player == player2) ? "You don't need any matterials" : player2.getDisplayName() + " doesn't need any matterials");
+        }
     }
 
     public static void updatePlayer(Player player) {
         final String playerId = ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getPlayer().getName();
         if (player.getScoreboard().getObjective(("materialsneeded" + playerId).substring(0, 16)) != null) {
-            addPlayer(player);
+            addPlayer(player, players.get(player));
         }
     }
 
@@ -63,12 +76,21 @@ public class ScoreBoardSystem {
         }
     }
 
+    public static void togglePlayer(Player player, Player player2) {
+        final String playerId = ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getPlayer().getName();
+        if (player.getScoreboard().getObjective(("materialsneeded" + playerId).substring(0, 16)) != null) {
+            removePlayer(player);
+        } else {
+            addPlayer(player, players.get(player2));
+        }
+    }
+
     public static void togglePlayer(Player player) {
         final String playerId = ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getPlayer().getName();
         if (player.getScoreboard().getObjective(("materialsneeded" + playerId).substring(0, 16)) != null) {
             removePlayer(player);
         } else {
-            addPlayer(player);
+            addPlayer(player, players.get(player));
         }
     }
 }

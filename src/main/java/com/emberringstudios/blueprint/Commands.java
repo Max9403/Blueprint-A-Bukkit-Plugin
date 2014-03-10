@@ -16,8 +16,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.metadata.LazyMetadataValue;
-import org.bukkit.metadata.MetadataValue;
 import org.yaml.snakeyaml.Yaml;
 
 /**
@@ -44,38 +42,24 @@ public class Commands {
             if (sender.hasPermission("blueprint.mark")) {
                 if (sender instanceof Player) {
                     Player player = (Player) sender;
-                    if (player.hasMetadata("inMarkMode")) {
-//                        DataHandler.addPlayerChest(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName(), pie.getClickedBlock());
-                        for (MetadataValue meta : player.getMetadata("inMarkMode")) {
-                            if (meta.getOwningPlugin() == Blueprint.getPlugin()) {
-                                if (meta.asBoolean()) {
-                                    player.setMetadata("inMarkMode", new LazyMetadataValue(Blueprint.getPlugin(), new Callable() {
-
-                                        public Object call() throws Exception {
-                                            return false;
-                                        }
-                                    }));
-                                    player.sendMessage("Resource chest mark cancled ");
-                                    break;
-                                } else {
-                                    player.setMetadata("inMarkMode", new LazyMetadataValue(Blueprint.getPlugin(), new Callable() {
-
-                                        public Object call() throws Exception {
-                                            return true;
-                                        }
-                                    }));
-                                    player.sendMessage("Now in resource chest marker, please right click a chest\nType command again to cancel ");
-                                }
-                            }
-                        }
+                    if (DataHandler.inUnmarkMode(player)) {
+                        player.sendMessage("You are already in unmark mode");
+                        return true;
+                    }
+                    if (DataHandler.inMarkMode(player)) {
+                        DataHandler.removeMarkMode(player);
+                        player.sendMessage("Mark mode cancled");
                     } else {
-                        player.setMetadata("inMarkMode", new LazyMetadataValue(Blueprint.getPlugin(), new Callable() {
-
-                            public Object call() throws Exception {
-                                return true;
+                        if (player.hasPermission("blueprint.mark.others") && args.length > 0) {
+                            if (Bukkit.getPlayerExact(args[0]) != null && Bukkit.getPlayerExact(args[0]).isOnline()) {
+                                DataHandler.putMarkMode(player, Bukkit.getPlayerExact(args[0]));
+                            } else {
+                                player.sendMessage("Can only mark resource chests for others when they are online in UUID mode");
                             }
-                        }));
-                        player.sendMessage("Now in resource chest marker, please right click a chest\nType command again to cancel ");
+                        } else {
+                            DataHandler.addMarkMode(player);
+                        }
+                        player.sendMessage("Now in mark mode");
                     }
                 } else {
                     sender.sendMessage("You must be a player!");
@@ -92,57 +76,76 @@ public class Commands {
             if (sender.hasPermission("blueprint.switch")) {
                 if (sender instanceof Player) {
                     final Player player = (Player) sender;
-                    final String playerId = ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getPlayer().getName();
-                    if (DataHandler.isPlayerActive(playerId)) {
-                        PlayerInventory tempStore = DataHandler.deactivatePlayer(playerId);
-                        player.getInventory().setArmorContents(tempStore.getArmour());
-                        player.getInventory().setContents(tempStore.getItems());
-                        player.teleport(DataHandler.getPlayerLocation(playerId));
-                        BlockSetter.getBlocks().airAll(DataHandler.getBlueprint(playerId, player.getWorld().getName()));
-                        player.setGameMode(DataHandler.getOriginalPlayerGameMode(playerId));
-                        player.sendMessage("You are no longer in blueprint mode, just gona deconstruct it");
-                    } else {
-                        if (PlayerListener.isPlayerDamamged(player)) {
-                            player.sendMessage("You are still to warn out from a fight to start building");
-                        } else {
-                            Yaml durpStore = new Yaml();
-                            String items = durpStore.dump(ItemSerial.serializeItemList(player.getInventory().getContents()));
-                            String armour = durpStore.dump(ItemSerial.serializeItemList(player.getInventory().getArmorContents()));
-
-                            DataHandler.setPlayer(playerId, player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ(), items.replaceAll("'", "''"), armour.replaceAll("'", "''"), 1, player.getGameMode(), player.getWorld().getName());
-
-                            List<BlockDataChest> playerChestLocations = DataHandler.getPlayerChestLocations(playerId);
-
-                            boolean resCheck = false;
-                            for (BlockData loc : playerChestLocations) {
-                                Inventory inv;
-                                if (loc.getLocation().getBlock().getState() instanceof InventoryHolder) {
-                                    inv = ((InventoryHolder) loc.getLocation().getBlock().getState()).getInventory();
-                                    for (ItemStack check : inv.getContents()) {
-                                        if (check != null) {
-                                            resCheck = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                                if (resCheck) {
-                                    resCheck = true;
-                                    break;
-                                }
+                    if (sender.hasPermission("blueprint.switch") && strings.length > 0) {
+                        for (String user : strings) {
+                            Player tempPlayer = null;
+                            if (Bukkit.getPlayerExact(user) != null && Bukkit.getPlayerExact(user).isOnline()) {
+                                tempPlayer = Bukkit.getPlayerExact(user);
+                            } else {
+                                sender.sendMessage("Can't toggle " + user + " as they are not online");
                             }
-                            if (resCheck) {
-                                player.sendMessage(ChatColor.RED + "There are blocks in your resource chest" + (playerChestLocations.size() > 1 ? "s. " : ". ") + "Blocks in your resource chest will still placed even when in blueprint mode and will have to be removed manualy");
+                            if (tempPlayer != null) {
+                                toggleUser(tempPlayer);
                             }
-                            BlockSetter.getBlocks().addAll(DataHandler.getBlueprint(playerId, player.getWorld().getName()));
-                            player.setGameMode(GameMode.CREATIVE);
-                            player.sendMessage("You are now in blueprint mode, just busy reconstructing it");
                         }
+                    } else {
+                        toggleUser(player);
                     }
+
                 } else {
                     sender.sendMessage("You must be a player!");
                 }
             }
             return true;
+        }
+
+        public void toggleUser(Player player) {
+            final String playerId = ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getPlayer().getName();
+            if (DataHandler.isPlayerActive(playerId)) {
+                PlayerInventory tempStore = DataHandler.deactivatePlayer(playerId);
+                player.getInventory().setArmorContents(tempStore.getArmour());
+                player.getInventory().setContents(tempStore.getItems());
+                player.teleport(DataHandler.getPlayerLocation(playerId));
+                BlockSetter.getBlocks().airAll(DataHandler.getBlueprint(playerId, player.getWorld().getName()));
+                player.setGameMode(DataHandler.getOriginalPlayerGameMode(playerId));
+                player.sendMessage("You are no longer in blueprint mode, just gona deconstruct it");
+            } else {
+                if (PlayerListener.isPlayerDamamged(player)) {
+                    player.sendMessage("You are still to worn out from a fight to start building");
+                } else {
+                    Yaml durpStore = new Yaml();
+                    String items = durpStore.dump(ItemSerial.serializeItemList(player.getInventory().getContents()));
+                    String armour = durpStore.dump(ItemSerial.serializeItemList(player.getInventory().getArmorContents()));
+
+                    DataHandler.setPlayer(playerId, player.getLocation().getX(), player.getLocation().getY(), player.getLocation().getZ(), items.replaceAll("'", "''"), armour.replaceAll("'", "''"), 1, player.getGameMode(), player.getWorld().getName());
+
+                    List<BlockDataChest> playerChestLocations = DataHandler.getPlayerChestLocations(playerId);
+
+                    boolean resCheck = false;
+                    for (BlockData loc : playerChestLocations) {
+                        Inventory inv;
+                        if (loc.getLocation().getBlock().getState() instanceof InventoryHolder) {
+                            inv = ((InventoryHolder) loc.getLocation().getBlock().getState()).getInventory();
+                            for (ItemStack check : inv.getContents()) {
+                                if (check != null) {
+                                    resCheck = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (resCheck) {
+                            resCheck = true;
+                            break;
+                        }
+                    }
+                    if (resCheck) {
+                        player.sendMessage(ChatColor.RED + "There are blocks in your resource chest" + (playerChestLocations.size() > 1 ? "s. " : ". ") + "Blocks in your resource chest will still placed even when in blueprint mode and will have to be removed manualy");
+                    }
+                    BlockSetter.getBlocks().addAll(DataHandler.getBlueprint(playerId, player.getWorld().getName()));
+                    player.setGameMode(GameMode.CREATIVE);
+                    player.sendMessage("You are now in blueprint mode, just busy reconstructing it");
+                }
+            }
         }
     }
 
@@ -154,7 +157,7 @@ public class Commands {
                     List<ItemStack> blueprint;
                     for (String part : args) {
                         if (ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true)) {
-                            Player player = Bukkit.getServer().getPlayer(part);
+                            Player player = Bukkit.getServer().getPlayerExact(part);
                             if (player == null) {
                                 sender.sendMessage("Can only get player when he/she is online in UUID mode");
                                 continue;
@@ -203,7 +206,16 @@ public class Commands {
         public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
             if (sender.hasPermission("blueprint.resourceboard")) {
                 if (sender instanceof Player) {
-                    ScoreBoardSystem.togglePlayer((Player) sender);
+
+                    if (sender.hasPermission("blueprint.listresources.others") && args.length > 0) {
+                        if (Bukkit.getPlayerExact(args[0]) != null && Bukkit.getPlayerExact(args[0]).isOnline()) {
+                            ScoreBoardSystem.togglePlayer((Player) sender, Bukkit.getPlayerExact(args[0]));
+                        } else {
+                            sender.sendMessage("Can't toggle " + args[0] + " as they are not online");
+                        }
+                    } else {
+                        ScoreBoardSystem.togglePlayer((Player) sender);
+                    }
                 } else {
                     sender.sendMessage("You must be a player!");
                 }
@@ -217,7 +229,7 @@ public class Commands {
         for (ItemStack item : items) {
             int contains = -1;
             for (int count = 0; count < list.size(); count++) {
-                if (list.get(count).isSimilar(item)) {
+                if (list.get(count).getType() == item.getType() && list.get(count).getData().getData() == item.getData().getData()) {
                     contains = count;
                     break;
                 }
@@ -237,38 +249,28 @@ public class Commands {
             if (sender.hasPermission("blueprint.unmark")) {
                 if (sender instanceof Player) {
                     Player player = (Player) sender;
-                    if (player.hasMetadata("inUnmarkMode")) {
-//                        DataHandler.addPlayerChest(ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true) ? player.getUniqueId().toString() : player.getName(), pie.getClickedBlock());
-                        for (MetadataValue meta : player.getMetadata("inUnmarkMode")) {
-                            if (meta.getOwningPlugin() == Blueprint.getPlugin()) {
-                                if (meta.asBoolean()) {
-                                    player.setMetadata("inUnmarkMode", new LazyMetadataValue(Blueprint.getPlugin(), new Callable() {
-
-                                        public Object call() throws Exception {
-                                            return false;
-                                        }
-                                    }));
-                                    player.sendMessage("Resource chest unmark cancled ");
-                                    break;
-                                } else {
-                                    player.setMetadata("inUnmarkMode", new LazyMetadataValue(Blueprint.getPlugin(), new Callable() {
-
-                                        public Object call() throws Exception {
-                                            return true;
-                                        }
-                                    }));
-                                    player.sendMessage("Now in resource chest unmarker, please right click a chest\nType command again to cancel ");
-                                }
-                            }
-                        }
+                    if (DataHandler.inMarkMode(player)) {
+                        player.sendMessage("You are already in mark mode");
+                        return true;
+                    }
+                    if (DataHandler.inUnmarkMode(player)) {
+                        DataHandler.removeUnmarkMode(player);
+                        player.sendMessage("Unmark mode cancled");
                     } else {
-                        player.setMetadata("inUnmarkMode", new LazyMetadataValue(Blueprint.getPlugin(), new Callable() {
-
-                            public Object call() throws Exception {
-                                return true;
+                        if (player.hasPermission("blueprint.unmark.others") && args.length > 0) {
+                            if (ConfigHandler.getDefaultBukkitConfig().getBoolean("use.UUIDs", true)) {
+                                if (Bukkit.getPlayerExact(args[0]).isOnline()) {
+                                    DataHandler.putUnmarkMode(player, Bukkit.getPlayerExact(args[0]));
+                                } else {
+                                    player.sendMessage("Can only unmark resource chests for others when they are online in UUID mode");
+                                }
+                            } else {
+                                DataHandler.putUnmarkMode(player, Bukkit.getPlayerExact(args[0]));
                             }
-                        }));
-                        player.sendMessage("Now in resource chest unmarker, please right click a chest\nType command again to cancel ");
+                        } else {
+                            DataHandler.addUnmarkMode(player);
+                        }
+                        player.sendMessage("Now in unmark mode");
                     }
                 } else {
                     sender.sendMessage("You must be a player!");

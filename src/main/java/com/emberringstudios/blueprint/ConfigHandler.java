@@ -34,8 +34,10 @@ public class ConfigHandler {
     private volatile static Database theDataHub = null;
     private volatile static FileConfiguration greenlistConfig = null;
     private volatile static File greenlistConfigFile = null;
-    private volatile static FileConfiguration blacklistConfig = null;
-    private volatile static File blacklistConfigFile = null;
+    private volatile static FileConfiguration blockBlacklistConfig = null;
+    private volatile static File blockBlacklistConfigFile = null;
+    private volatile static FileConfiguration commandsBlacklistConfig = null;
+    private volatile static File commandsBlacklistConfigFile = null;
 
     /**
      * @return the defaultBukkitConfig
@@ -154,17 +156,17 @@ public class ConfigHandler {
     /**
      *
      */
-    public static void reloadBlacklistConfig() {
-        if (blacklistConfigFile == null) {
-            blacklistConfigFile = new File(Blueprint.getPlugin().getDataFolder(), "List.yml");
+    public static void reloadBlockBlacklistConfig() {
+        if (blockBlacklistConfigFile == null) {
+            blockBlacklistConfigFile = new File(Blueprint.getPlugin().getDataFolder(), "List.yml");
         }
-       blacklistConfig = YamlConfiguration.loadConfiguration(blacklistConfigFile);
+       blockBlacklistConfig = YamlConfiguration.loadConfiguration(blockBlacklistConfigFile);
 
         // Look for defaults in the jar
         InputStream defConfigStream = Blueprint.getPlugin().getResource("List.yml");
         if (defConfigStream != null) {
             YamlConfiguration defConfig = YamlConfiguration.loadConfiguration(defConfigStream);
-            blacklistConfig.setDefaults(defConfig);
+            blockBlacklistConfig.setDefaults(defConfig);
         }
     }
 
@@ -172,24 +174,66 @@ public class ConfigHandler {
      *
      * @return
      */
-    public static FileConfiguration getBlacklistConfig() {
-        if (blacklistConfig == null) {
-            reloadBlacklistConfig();
+    public static FileConfiguration getBlockBlacklistConfig() {
+        if (blockBlacklistConfig == null) {
+            reloadBlockBlacklistConfig();
         }
-        return blacklistConfig;
+        return blockBlacklistConfig;
     }
 
     /**
      *
      */
-    public static void saveBlacklistConfig() {
-        if (blacklistConfig == null ||blacklistConfigFile == null) {
+    public static void saveBlockBlacklistConfig() {
+        if (blockBlacklistConfig == null ||blockBlacklistConfigFile == null) {
             return;
         }
         try {
-            getBlacklistConfig().save(blacklistConfigFile);
+            getBlockBlacklistConfig().save(blockBlacklistConfigFile);
         } catch (IOException ex) {
-            Blueprint.error("Could not save config to " + blacklistConfigFile, ex);
+            Blueprint.error("Could not save config to " + blockBlacklistConfigFile, ex);
+        }
+    }
+
+    /**
+     *
+     */
+    public static void reloadCommandsBlacklistConfig() {
+        if (commandsBlacklistConfigFile == null) {
+            commandsBlacklistConfigFile = new File(Blueprint.getPlugin().getDataFolder(), "Commands.yml");
+        }
+       commandsBlacklistConfig = YamlConfiguration.loadConfiguration(commandsBlacklistConfigFile);
+
+        // Look for defaults in the jar
+        InputStream defConfigStream = Blueprint.getPlugin().getResource("Commands.yml");
+        if (defConfigStream != null) {
+            YamlConfiguration defConfig = YamlConfiguration.loadConfiguration(defConfigStream);
+            commandsBlacklistConfig.setDefaults(defConfig);
+        }
+    }
+
+    /**
+     *
+     * @return
+     */
+    public static FileConfiguration getCommandsBlacklistConfig() {
+        if (commandsBlacklistConfig == null) {
+            reloadCommandsBlacklistConfig();
+        }
+        return commandsBlacklistConfig;
+    }
+
+    /**
+     *
+     */
+    public static void saveCommandsBlacklistConfig() {
+        if (commandsBlacklistConfig == null ||commandsBlacklistConfigFile == null) {
+            return;
+        }
+        try {
+            getCommandsBlacklistConfig().save(commandsBlacklistConfigFile);
+        } catch (IOException ex) {
+            Blueprint.error("Could not save config to " + commandsBlacklistConfigFile, ex);
         }
     }
 }

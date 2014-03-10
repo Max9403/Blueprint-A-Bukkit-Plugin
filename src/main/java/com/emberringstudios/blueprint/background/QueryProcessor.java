@@ -58,9 +58,10 @@ public class QueryProcessor implements Runnable {
                     result.close();
                 } catch (SQLException ex) {
                     if (query.runError(ex)) {
-                        Blueprint.error("An error occured while running a query: \n" + query.getQuery(), ex);
+                        Blueprint.error("An error occurred while running a query: \n" + query.getQuery(), ex);
                     } else {
                         queries.remove(query);
+                        continue;
                     }
                 }
                 query.getCallback().result(data);

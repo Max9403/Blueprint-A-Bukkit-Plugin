@@ -7,6 +7,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 
 /**
  *
@@ -298,5 +299,11 @@ public class BlockData {
      */
     public String convertToKey() {
         return locX + "" + locY + "" + locZ + blockWorld.getName();
+    }
+
+    public BlockState updateBlockState(final BlockState state) {
+        state.setTypeId(type);
+        state.setRawData(data);
+        return state;
     }
 }

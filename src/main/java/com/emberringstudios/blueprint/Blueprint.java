@@ -86,6 +86,7 @@ public class Blueprint extends JavaPlugin {
                 }
             } else {
                 error("Please download and install SQLibrary, a link can be found on my plugins page");
+                return;
             }
         }
         
@@ -93,21 +94,30 @@ public class Blueprint extends JavaPlugin {
         ConfigHandler.getDefaultBukkitConfig().options().copyDefaults(true);
         setGreenlistDefaults();
         ConfigHandler.getGreenlistConfig().options().copyDefaults(true);
-        setBlacklistDefaults();
-        ConfigHandler.getBlacklistConfig().options().copyDefaults(true);
+        setBlockBlacklistDefaults();
+        ConfigHandler.getBlockBlacklistConfig().options().copyDefaults(true);
+        setCommandsBlacklistDefaults();
+        ConfigHandler.getCommandsBlacklistConfig().options().copyDefaults(true);
         getServer().getPluginManager().registerEvents(new PlayerListener(), this);
         DataHandler.setupDB();
         DataHandler.setupCache();
         Commands.register();
         ConfigHandler.saveGreenlistConfig();
-        ConfigHandler.saveBlacklistConfig();
+        ConfigHandler.saveBlockBlacklistConfig();
+        ConfigHandler.saveCommandsBlacklistConfig();
+        saveConfig();
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, new QueryProcessor());
         plugin.getServer().getScheduler().runTaskTimer(plugin, new BlueprintBuild(plugin), ConfigHandler.getDefaultBukkitConfig().getInt("limits.time to check", 60), ConfigHandler.getDefaultBukkitConfig().getInt("limits.time to check", 60));
         plugin.getServer().getScheduler().runTaskTimer(plugin, new BlockSetter(), ConfigHandler.getDefaultBukkitConfig().getInt("limits.time to check", 60), ConfigHandler.getDefaultBukkitConfig().getInt("limits.time to check", 60));
-        if (ConfigHandler.getDefaultBukkitConfig().getBoolean("limits.blacklist")) {
-            info("Running in blacklist mode");
+        if (ConfigHandler.getDefaultBukkitConfig().getBoolean("limits.blacklist.blocks")) {
+            info("Running in block blacklist mode");
         } else {
-            info("Running in whitelist mode");
+            info("Running in block whitelist mode");
+        }
+        if (ConfigHandler.getDefaultBukkitConfig().getBoolean("limits.blacklist.commands")) {
+            info("Running in commands blacklist mode");
+        } else {
+            info("Running in commands whitelist mode");
         }
     }
 
@@ -123,18 +133,22 @@ public class Blueprint extends JavaPlugin {
     private void setConfigDefaults() {
         ConfigHandler.getDefaultBukkitConfig().addDefault("use.UUIDs", true);
         ConfigHandler.getDefaultBukkitConfig().addDefault("use.downloads", true);
-        ConfigHandler.getDefaultBukkitConfig().addDefault("limits.disable signs", true);
         ConfigHandler.getDefaultBukkitConfig().addDefault("database.type", 0);
+        ConfigHandler.getDefaultBukkitConfig().addDefault("database.prefix", "blueprint");
         ConfigHandler.getDefaultBukkitConfig().addDefault("database.hostname", "localhost");
         ConfigHandler.getDefaultBukkitConfig().addDefault("database.port", 3306);
         ConfigHandler.getDefaultBukkitConfig().addDefault("database.database", "blueprint");
         ConfigHandler.getDefaultBukkitConfig().addDefault("database.user", "root");
         ConfigHandler.getDefaultBukkitConfig().addDefault("database.password", "");
+        ConfigHandler.getDefaultBukkitConfig().addDefault("limits.disable signs", true);
         ConfigHandler.getDefaultBukkitConfig().addDefault("limits.blocks at a time", 20);
         ConfigHandler.getDefaultBukkitConfig().addDefault("limits.time to check", 60);
-        ConfigHandler.getDefaultBukkitConfig().addDefault("limits.blacklist", true);
+        ConfigHandler.getDefaultBukkitConfig().addDefault("limits.blacklist.blocks", true);
+        ConfigHandler.getDefaultBukkitConfig().addDefault("limits.blacklist.commands", true);
         ConfigHandler.getDefaultBukkitConfig().addDefault("limits.disable signs", true);
         ConfigHandler.getDefaultBukkitConfig().addDefault("limits.combat cooldown", 200);
+        ConfigHandler.getDefaultBukkitConfig().addDefault("limits.disabale on logout", false);
+        ConfigHandler.getDefaultBukkitConfig().addDefault("limits.logging destroy and build", true);
     }
 
     /**
@@ -151,9 +165,18 @@ public class Blueprint extends JavaPlugin {
     /**
      * Sets the default blacklist items
      */
-    private void setBlacklistDefaults() {
-        ConfigHandler.getBlacklistConfig().addDefault("List Items", Arrays.asList(new Integer[]{
+    private void setBlockBlacklistDefaults() {
+        ConfigHandler.getBlockBlacklistConfig().addDefault("List Items", Arrays.asList(new Integer[]{
             46
+        }));
+    }
+
+    /**
+     * Sets the default blacklist items
+     */
+    private void setCommandsBlacklistDefaults() {
+        ConfigHandler.getCommandsBlacklistConfig().addDefault("List Commands", Arrays.asList(new String[]{
+            "/give.*"
         }));
     }
 }
