@@ -402,7 +402,7 @@ public class DataHandler {
         QueryProcessor.addQuery(new QueryData("SELECT COUNT(*) AS Count FROM " + ConfigHandler.getDefaultBukkitConfig().getString("database.prefix", "blueprint") + "_players WHERE playerID = '" + name + "';", new QueryCallback() {
             public void result(List<ResultData> result) {
                 if (Integer.parseInt(result.get(0).getKey("Count")) == 0) {
-                    QueryProcessor.addQuery(new QueryData(MessageFormat.format("INSERT INTO {9}_players (playerID, locX, locY, locZ, gameMode, inventory, armour, active, world) VALUES (''{0}'', {1}, {2}, {3}, {4}, ''{5}'', ''{6}'', {7}, ''{8}'');", name, locX, locY, locZ, gameMode, inv, arm, active, world, ConfigHandler.getDefaultBukkitConfig().getString("database.prefix", "blueprint")), new QueryCallback() {
+                    QueryProcessor.addQuery(new QueryData(MessageFormat.format("INSERT INTO {9}_players (playerID, locX, locY, locZ, gameMode, inventory, armour, active, world) VALUES (''{0}'', {1}, {2}, {3}, {4}, ''{5}'', ''{6}'', {7}, ''{8}'');", name, String.valueOf(locX).replaceAll("[^0-9\\.]", ""), String.valueOf(locY).replaceAll("[^0-9\\.]", ""), String.valueOf(locZ).replaceAll("[^0-9\\.]", ""), gameMode, inv, arm, active, world, ConfigHandler.getDefaultBukkitConfig().getString("database.prefix", "blueprint")), new QueryCallback() {
                         public void result(List<ResultData> result) {
                         }
                     }) {
@@ -413,7 +413,7 @@ public class DataHandler {
                         }
                     });
                 } else {
-                    QueryProcessor.addQuery(new QueryData(MessageFormat.format("UPDATE {8}_players SET locX =  {0}, locY =  {1}, locZ = {2}, gameMode = {3},  inventory = ''{4}'', armour = ''{5}'', active = {6} WHERE playerID = ''{7}'';", locX, locY, locZ, gameMode, inv, arm, active, name, ConfigHandler.getDefaultBukkitConfig().getString("database.prefix", "blueprint")), new QueryCallback() {
+                    QueryProcessor.addQuery(new QueryData(MessageFormat.format("UPDATE {8}_players SET locX =  {0}, locY =  {1}, locZ = {2}, gameMode = {3},  inventory = ''{4}'', armour = ''{5}'', active = {6} WHERE playerID = ''{7}'';", String.valueOf(locX).replaceAll("[^0-9\\.]", ""), String.valueOf(locY).replaceAll("[^0-9\\.]", ""), String.valueOf(locZ).replaceAll("[^0-9\\.]", ""), gameMode, inv, arm, active, name, ConfigHandler.getDefaultBukkitConfig().getString("database.prefix", "blueprint")), new QueryCallback() {
                         public void result(List<ResultData> result) {
                         }
                     }));
@@ -438,9 +438,9 @@ public class DataHandler {
 
             public void result(List<ResultData> result) {
                 if (Integer.parseInt(result.get(0).getKey("Count")) == 0) {
-                    QueryProcessor.addQuery(new QueryData("INSERT INTO " + ConfigHandler.getDefaultBukkitConfig().getString("database.prefix", "blueprint") + "_players (playerID, locX, locY, locZ, gameMode) VALUES ('" + name + "', " + locX + ", " + locY + ", " + locZ + ", 0);", new QueryCallback() {
+                    QueryProcessor.addQuery(new QueryData(MessageFormat.format("INSERT INTO {0}_players (playerID, locX, locY, locZ, gameMode) VALUES ('{1}', {2}, {3}, {4}, 0);", ConfigHandler.getDefaultBukkitConfig().getString("database.prefix", "blueprint"), name, String.valueOf(locX).replaceAll("[^0-9\\.]", ""), String.valueOf(locY).replaceAll("[^0-9\\.]", ""), String.valueOf(locZ).replaceAll("[^0-9\\.]", "")), new QueryCallback() {
                         public void result(List<ResultData> result) {
-                            QueryProcessor.addQuery(new QueryData("UPDATE " + ConfigHandler.getDefaultBukkitConfig().getString("database.prefix", "blueprint") + "_players SET locX =  " + locX + ", locY =  " + locY + ", locZ = " + locZ + " WHERE playerID = '" + name + "';", new QueryCallback() {
+                            QueryProcessor.addQuery(new QueryData(MessageFormat.format("UPDATE {0}_players SET locX =  {1}, locY =  {2}, locZ = {3} WHERE playerID = '{4}';", ConfigHandler.getDefaultBukkitConfig().getString("database.prefix", "blueprint"), String.valueOf(locX).replaceAll("[^0-9\\.]", ""), String.valueOf(locY).replaceAll("[^0-9\\.]", ""), String.valueOf(locZ).replaceAll("[^0-9\\.]", ""), name), new QueryCallback() {
                                 public void result(List<ResultData> result) {
                                 }
                             }));
@@ -452,7 +452,7 @@ public class DataHandler {
                         }
                     });
                 } else {
-                    QueryProcessor.addQuery(new QueryData("UPDATE " + ConfigHandler.getDefaultBukkitConfig().getString("database.prefix", "blueprint") + "_players SET locX =  " + locX + ", locY =  " + locY + ", locZ = " + locZ + " WHERE playerID = '" + name + "';", new QueryCallback() {
+                    QueryProcessor.addQuery(new QueryData(MessageFormat.format("UPDATE {0}_players SET locX =  {1}, locY =  {2}, locZ = {3} WHERE playerID = '{4}';", ConfigHandler.getDefaultBukkitConfig().getString("database.prefix", "blueprint"),String.valueOf(locX).replaceAll("[^0-9\\.]", ""), String.valueOf(locY).replaceAll("[^0-9\\.]", ""), String.valueOf(locZ).replaceAll("[^0-9\\.]", ""), name), new QueryCallback() {
                         public void result(List<ResultData> result) {
                         }
                     }));
